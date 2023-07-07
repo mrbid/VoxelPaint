@@ -798,7 +798,8 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_ESCAPE) // unlock mouse focus
                 {
                     focus_mouse = 0;
-                    SDL_ShowCursor(1);
+                    SDL_SetRelativeMouseMode(SDL_FALSE);
+                    //SDL_ShowCursor(1);
                 }
                 else if(event.key.keysym.sym == SDLK_1)
                 {
@@ -882,7 +883,8 @@ void main_loop()
                 if(focus_mouse == 0) // lock mouse focus on every mouse input to the window
                 {
                     focus_mouse = 1;
-                    SDL_ShowCursor(0);
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                    //SDL_ShowCursor(0);
                     break;
                 }
 
@@ -957,10 +959,10 @@ void main_loop()
     {
         mGetViewZ(&state.look_dir, view);
 
-        if(ptt != 0.f && t > ptt)
+        if(ptt != 0.f && t > ptt) // place trigger
             placeVoxel(0.1f);
         
-        if(dtt != 0.f && t > dtt)
+        if(dtt != 0.f && t > dtt) // delete trigger
         {
             if(lray > 0){state.voxels[lray].w = -1.f;}
             dtt = t+0.1f;
@@ -1043,7 +1045,6 @@ void main_loop()
             SDL_WarpMouseInWindow(wnd, lx, ly);
         }
     }
-
 
     mIdent(&view);
     mRotate(&view, state.yrot, 1.f, 0.f, 0.f);
@@ -1182,7 +1183,8 @@ int main(int argc, char** argv)
         printf("ERROR: SDL_GL_CreateContext(): %s\n", SDL_GetError());
         return 1;
     }
-    SDL_ShowCursor(0);
+    //SDL_SetRelativeMouseMode(SDL_TRUE);
+    //SDL_ShowCursor(0);
 
     // set icon
     s_icon = surfaceFromData((Uint32*)&icon, 16, 16);
