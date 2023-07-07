@@ -620,13 +620,16 @@ const GLchar* f14 =
     "void main()\n"
     "{\n"
         "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
-        "vec3 ambientColor = tcol.xyz * 0.148;\n"
+        "vec3 ambientColor = tcol.xyz * 0.33;\n"
         "vec3 lightDir = normalize(vlightPos - vertPos);\n"
         "float lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0);\n"
         //"gl_FragColor = vec4(ambientColor + lambertian*tcol.xyz, vertOpa);\n"
+#ifndef SKYBLUE
         "gl_FragColor = vec4((ambientColor + lambertian*tcol.xyz) * clamp(1.0 - (length(vertPos)*0.002), 0.0, 1.0), vertOpa);\n"
-        //"float amt = clamp(1.0 - (length(vertPos)*0.02), 0.0, 1.0);\n"
-        //"gl_FragColor = vec4( ((ambientColor + lambertian*tcol.xyz) * amt) + (vec3(0.3, 0.745, 0.8863) * (1.0-amt)) , vertOpa);\n"
+#else
+        "float amt = clamp(1.0 - (length(vertPos)*0.002), 0.0, 1.0);\n"
+        "gl_FragColor = vec4( ((ambientColor + lambertian*tcol.xyz) * amt) + (vec3(0.3, 0.745, 0.8863) * (1.0-amt)) , vertOpa);\n"
+#endif
     "}\n";
 
 #endif
