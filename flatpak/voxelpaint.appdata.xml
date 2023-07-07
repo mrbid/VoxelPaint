@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+	<id type="desktop">voxelpaint.desktop</id>
+	<metadata_license>CC-BY-4.0</metadata_license>
+	<project_license>GPL-2.0-only</project_license>
+	<name>VoxelPaint</name>
+	<summary>Paint in 3D using voxels!</summary>
+	<description>
+		<p>Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.</p>
+
+		<ul>
+			<li>W,A,S,D = Move around based on relative orientation to X and Y.</li>
+			<li>L-SHIFT + SPACE = Move up and down relative Z.</li>
+			<li>2-3 / Mouse Scroll Wheel = Change selected node.</li>
+			<li>E / Left Click = Place node.</li>
+			<li>Q / Right Click = Delete pointed node.</li>
+			<li>F / Mouse4 Click = Toggle player fast speed on and off.</li>
+			<li>1 / Middle Click = Sets selected node to the same one you are pointing at.</li>
+		</ul>
+
+		<p>Arrow Keys can be used to move the view around.</p>
+		<p>Your state is automatically saved on exit.</p>
+	</description>
+	<screenshots>
+		<screenshot>https://i.imgur.com/yA4fNfz.png</screenshot>
+	</screenshots>
+	<url type="homepage">https://dashboard.snapcraft.io/site_media/appmedia/2023/07/Screenshot_2023-07-07_01-56-44_oXveCB3.png</url>
+	<releases>
+		<release version="1.0" date="2023-07-07" />
+	</releases>
+	<content_rating type="oars-1.0" />
+</application>
