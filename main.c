@@ -655,6 +655,7 @@ GLuint texmap;
 // voxel
 const GLfloat voxel_vertices[] = {-0.5,0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,0.5,-0.5};
 const GLfloat voxel_normals[] = {0,0,1,0,0,1,0,0,1,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,0,0,-1,0,0,-1,0,0,-1,1,0,-0,1,0,-0,1,0,-0,0,1,-0,0,1,-0,0,1,-0,0,-0,1,0,-1,0,-1,0,0,0,0,-1,1,0,0,0,1,-0,0,1,-0};
+// the uv map has one "float" change that based on: 1.f/(tiles_image_width/16.f)
 const GLfloat voxel_uvmap[] = {0,1,0.058824,0,0.058824,1,0.058824,1,0,0,0.058824,0,0,0,0.058823,1,0,1,0.058823,0,0,1,0,0,0.058824,1,0,0,0.058824,0,0,0,0.058824,1,0,1,0,0,0,1,0.058823,0,0.058823,1,0,1,0.058823,0,0.058823,1};
 const GLubyte voxel_indices[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,0,18,1,3,19,4,6,20,7,9,21,10,12,22,13,15,23,24};
 const GLsizeiptr voxel_numind = 36;
@@ -746,6 +747,7 @@ void main_loop()
         {
             case SDL_KEYDOWN:
             {
+                if(focus_mouse == 0){break;}
                 if(event.key.keysym.sym == SDLK_w){ks[0] = 1;}
                 else if(event.key.keysym.sym == SDLK_a){ks[1] = 1;}
                 else if(event.key.keysym.sym == SDLK_s){ks[2] = 1;}
@@ -763,10 +765,10 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_1)
                 {
-                    state.pb = (vec){0.f, 0.f, 0.f};
+                    vec er;
                     vec ipp = state.pp;
                     vInv(&ipp);
-                    const int b = ray(&state.pb, 100, 0.25f, ipp);
+                    const int b = ray(&er, 100, 0.25f, ipp);
                     if(b > -1){state.sb = state.voxels[b].w;}
                 }
                 else if(event.key.keysym.sym == SDLK_2) // - change selected node
@@ -781,9 +783,10 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
+                    vec er;
                     vec ipp = state.pp;
                     vInv(&ipp);
-                    const int b = ray(&state.pb, 100, 0.25f, ipp);
+                    const int b = ray(&er, 100, 0.25f, ipp);
                     if(b > 0){state.voxels[b].w = -1.f;}
                 }
                 else if(event.key.keysym.sym == SDLK_e) // place a voxel
@@ -884,18 +887,18 @@ void main_loop()
                 }
                 else if(event.button.button == SDL_BUTTON_RIGHT) // remove pointed voxel
                 {
-                    state.pb = (vec){0.f, 0.f, 0.f};
+                    vec er;
                     vec ipp = state.pp;
                     vInv(&ipp);
-                    const int b = ray(&state.pb, 100, 0.25f, ipp);
+                    const int b = ray(&er, 100, 0.25f, ipp);
                     if(b > 0){state.voxels[b].w = -1.f;}
                 }
-                else if(event.button.button == SDL_BUTTON_MIDDLE) // remove pointed voxel
+                else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
-                    state.pb = (vec){0.f, 0.f, 0.f};
+                    vec er;
                     vec ipp = state.pp;
                     vInv(&ipp);
-                    const int b = ray(&state.pb, 100, 0.25f, ipp);
+                    const int b = ray(&er, 100, 0.25f, ipp);
                     //printf("r: %f \n", state.voxels[b].w);
                     if(b > -1){state.sb = state.voxels[b].w;}
                 }
@@ -951,71 +954,71 @@ void main_loop()
 //*************************************
 // keystates
 //*************************************
-
-    mGetViewZ(&state.look_dir, view);
-
-    if(ks[0] == 1) // W
-    {
-        vec m;
-        vMulS(&m, state.look_dir, state.move_speed * dt);
-        vSub(&state.pp, state.pp, m);
-    }
-    else if(ks[2] == 1) // S
-    {
-        vec m;
-        vMulS(&m, state.look_dir, state.move_speed * dt);
-        vAdd(&state.pp, state.pp, m);
-    }
-
-    if(ks[1] == 1) // A
-    {
-        vec vdc;
-        mGetViewX(&vdc, view);
-        vec m;
-        vMulS(&m, vdc, state.move_speed * dt);
-        vSub(&state.pp, state.pp, m);
-    }
-    else if(ks[3] == 1) // D
-    {
-        vec vdc;
-        mGetViewX(&vdc, view);
-        vec m;
-        vMulS(&m, vdc, state.move_speed * dt);
-        vAdd(&state.pp, state.pp, m);
-    }
-
-    if(ks[4] == 1) // LSHIFT (down)
-    {
-        vec vdc;
-        mGetViewY(&vdc, view);
-        vec m;
-        vMulS(&m, vdc, state.move_speed * dt);
-        vSub(&state.pp, state.pp, m);
-    }
-    else if(ks[9] == 1) // SPACE (up)
-    {
-        vec vdc;
-        mGetViewY(&vdc, view);
-        vec m;
-        vMulS(&m, vdc, state.move_speed * dt);
-        vAdd(&state.pp, state.pp, m);
-    }
-
-    if(ks[5] == 1) // LEFT
-        state.xrot += 1.f*dt;
-    else if(ks[6] == 1) // RIGHT
-        state.xrot -= 1.f*dt;
-
-    if(ks[7] == 1) // UP
-        state.yrot += 1.f*dt;
-    else if(ks[8] == 1) // DOWN
-        state.yrot -= 1.f*dt;
-
-//*************************************
-// camera/mouse control
-//*************************************
     if(focus_mouse == 1)
     {
+        mGetViewZ(&state.look_dir, view);
+
+        if(ks[0] == 1) // W
+        {
+            vec m;
+            vMulS(&m, state.look_dir, state.move_speed * dt);
+            vSub(&state.pp, state.pp, m);
+        }
+        else if(ks[2] == 1) // S
+        {
+            vec m;
+            vMulS(&m, state.look_dir, state.move_speed * dt);
+            vAdd(&state.pp, state.pp, m);
+        }
+
+        if(ks[1] == 1) // A
+        {
+            vec vdc;
+            mGetViewX(&vdc, view);
+            vec m;
+            vMulS(&m, vdc, state.move_speed * dt);
+            vSub(&state.pp, state.pp, m);
+        }
+        else if(ks[3] == 1) // D
+        {
+            vec vdc;
+            mGetViewX(&vdc, view);
+            vec m;
+            vMulS(&m, vdc, state.move_speed * dt);
+            vAdd(&state.pp, state.pp, m);
+        }
+
+        if(ks[4] == 1) // LSHIFT (down)
+        {
+            vec vdc;
+            mGetViewY(&vdc, view);
+            vec m;
+            vMulS(&m, vdc, state.move_speed * dt);
+            vSub(&state.pp, state.pp, m);
+        }
+        else if(ks[9] == 1) // SPACE (up)
+        {
+            vec vdc;
+            mGetViewY(&vdc, view);
+            vec m;
+            vMulS(&m, vdc, state.move_speed * dt);
+            vAdd(&state.pp, state.pp, m);
+        }
+
+        if(ks[5] == 1) // LEFT
+            state.xrot += 1.f*dt;
+        else if(ks[6] == 1) // RIGHT
+            state.xrot -= 1.f*dt;
+
+        if(ks[7] == 1) // UP
+            state.yrot += 1.f*dt;
+        else if(ks[8] == 1) // DOWN
+            state.yrot -= 1.f*dt;
+
+    //*************************************
+    // camera/mouse control
+    //*************************************
+        
         const int xd = lx-mx;
         const int yd = ly-my;
         if(xd != 0 || yd != 0)
@@ -1032,6 +1035,7 @@ void main_loop()
             SDL_WarpMouseInWindow(wnd, lx, ly);
         }
     }
+
 
     mIdent(&view);
     mRotate(&view, state.yrot, 1.f, 0.f, 0.f);
