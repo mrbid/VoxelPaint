@@ -663,7 +663,33 @@ const GLsizeiptr voxel_numvert = 25;
 ESModel mdlVoxel;
 
 // shoot ray through voxels
-int ray(vec* ep, const uint depth, const float stepsize, const vec start_pos)
+int rayi(const uint depth, const float stepsize, const vec start_pos) // returns just the voxel index
+{
+    vec inc;
+    vMulS(&inc, state.look_dir, stepsize);
+    int hit = -1;
+    vec rp = start_pos;
+    for(uint i = 0; i < depth; i++)
+    {
+        vAdd(&rp, rp, inc);
+        vec rb;
+        rb.x = roundf(rp.x);
+        rb.y = roundf(rp.y);
+        rb.z = roundf(rp.z);
+        for(int j = 0; j < state.num_voxels; j++)
+        {
+            if(state.voxels[j].w < 0.f){continue;}
+            if(rb.x == state.voxels[j].x && rb.y == state.voxels[j].y && rb.z == state.voxels[j].z)
+            {
+                hit = j;
+                break;
+            }
+        }
+        if(hit > -1){break;}
+    }
+    return hit;
+}
+int ray(vec* ep, const uint depth, const float stepsize, const vec start_pos) // returns hit position
 {
     vec inc;
     vMulS(&inc, state.look_dir, stepsize);
@@ -682,6 +708,34 @@ int ray(vec* ep, const uint depth, const float stepsize, const vec start_pos)
             if(rb.x == state.voxels[j].x && rb.y == state.voxels[j].y && rb.z == state.voxels[j].z)
             {
                 *ep = state.voxels[j];
+                hit = j;
+                break;
+            }
+        }
+        if(hit > -1){break;}
+    }
+    return hit;
+}
+int rayn(vec* ep, const uint depth, const float stepsize, const vec start_pos) // returns hit vector
+{
+    vec inc;
+    vMulS(&inc, state.look_dir, stepsize);
+    int hit = -1;
+    vec rp = start_pos;
+    for(uint i = 0; i < depth; i++)
+    {
+        vAdd(&rp, rp, inc);
+        vec rb;
+        rb.x = roundf(rp.x);
+        rb.y = roundf(rp.y);
+        rb.z = roundf(rp.z);
+        for(int j = 0; j < state.num_voxels; j++)
+        {
+            if(state.voxels[j].w < 0.f){continue;}
+            if(rb.x == state.voxels[j].x && rb.y == state.voxels[j].y && rb.z == state.voxels[j].z)
+            {
+                *ep = (vec){rp.x-rb.x, rp.y-rb.y, rp.z-rb.z};
+                vNorm(ep);
                 hit = j;
                 break;
             }
@@ -1080,11 +1134,11 @@ void main_loop()
 
     // targeting voxel
     vec rp = state.pb;
-    if(ray(&rp, 100, 0.25f, ipp) > -1)
+    int r = rayn(&rp, 100, 0.25f, ipp);
+    if(r > -1)
     {
-        vec diff;
-        vSub(&diff, ipp, rp);
-        vNorm(&diff);
+        vec diff = rp;
+        rp = state.voxels[r];
 
         vec fd = diff;
         fd.x = fabsf(diff.x);
