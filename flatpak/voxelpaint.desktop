@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Voxel Paint
+Comment=Paint in 3D using voxels!
+StartupNotify=false
+Exec=voxelpaint
+Icon=voxelpaint
+Terminal=false
+Type=Application
+Categories=Game;Graphics;
