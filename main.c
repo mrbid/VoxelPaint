@@ -701,9 +701,9 @@ int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_po
 //
 int placeVoxel(const float speed)
 {
-    if(state.pb.w == -1){return 0;}
-
     ptt = t+speed;
+
+    if(state.pb.w == -1){return 0;}
 
     for(uint i = 0; i < max_voxels; i++)
     {
@@ -819,8 +819,8 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
-                    if(lray > 0){state.voxels[lray].w = -1.f;}
                     dtt = t+0.3f;
+                    if(lray > 0){state.voxels[lray].w = -1.f;}
                 }
                 else if(event.key.keysym.sym == SDLK_e) // place a voxel
                 {
@@ -890,12 +890,12 @@ void main_loop()
 
                 if(event.button.button == SDL_BUTTON_LEFT) // place a voxel
                 {
-                    placeVoxel(0.3f);                    
+                    placeVoxel(0.3f);
                 }
                 else if(event.button.button == SDL_BUTTON_RIGHT) // remove pointed voxel
                 {
-                    if(lray > 0){state.voxels[lray].w = -1.f;}
                     dtt = t+0.3f;
+                    if(lray > 0){state.voxels[lray].w = -1.f;}
                 }
                 else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
