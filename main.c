@@ -538,6 +538,7 @@ const unsigned char tiles[] = { // 272, 16, 3
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
 
+//#define SKYBLUE
 #include "inc/esAux4.h"
 
 #define uint GLuint
@@ -1334,7 +1335,11 @@ int main(int argc, char** argv)
     glEnable(GL_CULL_FACE);
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+#ifdef SKYBLUE
+    glClearColor(0.3f, 0.745f, 0.8863f, 0.0f);
+#else
     glClearColor(0.f, 0.f, 0.f, 0.0f);
+#endif
 
     shadeLambertT(&position_id, &projection_id, &modelview_id, &lightpos_id, &normal_id, &texcoord_id, &texoffset_id, &sampler_id, &opacity_id);
     glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
