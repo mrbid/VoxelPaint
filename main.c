@@ -655,7 +655,7 @@ GLuint texmap;
 // voxel
 const GLfloat voxel_vertices[] = {-0.5,0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,0.5,-0.5};
 const GLfloat voxel_normals[] = {0,0,1,0,0,1,0,0,1,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,0,0,-1,0,0,-1,0,0,-1,1,0,-0,1,0,-0,1,0,-0,0,1,-0,0,1,-0,0,1,-0,0,-0,1,0,-1,0,-1,0,0,0,0,-1,1,0,0,0,1,-0,0,1,-0};
-// the uv map has one "float" change that based on: 1.f/(tiles_image_width/16.f)
+// the uv map has one "float" change that is based on: 1.f/(tiles_image_width/16.f)
 const GLfloat voxel_uvmap[] = {0,1,0.058824,0,0.058824,1,0.058824,1,0,0,0.058824,0,0,0,0.058823,1,0,1,0.058823,0,0,1,0,0,0.058824,1,0,0,0.058824,0,0,0,0.058824,1,0,1,0,0,0,1,0.058823,0,0.058823,1,0,1,0.058823,0,0.058823,1};
 const GLubyte voxel_indices[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,0,18,1,3,19,4,6,20,7,9,21,10,12,22,13,15,23,24};
 const GLsizeiptr voxel_numind = 36;
@@ -822,6 +822,7 @@ void main_loop()
 
             case SDL_KEYUP:
             {
+                if(focus_mouse == 0){break;}
                 if(event.key.keysym.sym == SDLK_w){ks[0] = 0;}
                 else if(event.key.keysym.sym == SDLK_a){ks[1] = 0;}
                 else if(event.key.keysym.sym == SDLK_s){ks[2] = 0;}
@@ -837,6 +838,7 @@ void main_loop()
 
             case SDL_MOUSEWHEEL: // change selected node
             {
+                if(focus_mouse == 0){break;}
                 if(event.wheel.y > 0)
                 {
                     state.sb += 1.f;
