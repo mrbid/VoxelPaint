@@ -1383,6 +1383,10 @@ int main(int argc, char** argv)
         state.sb = 10.f;
     }
 
+    // argv mouse sensitivity
+    if(argc == 2){state.sens = atof(argv[1]);}
+
+    // loop
 #ifdef VERBOSE
     t = fTime();
     uint fps = 0;
