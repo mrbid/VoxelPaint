@@ -565,6 +565,7 @@ uint ks[10] = {0}; // keystate
 uint focus_mouse = 0;
 float ddist = 460.f;
 float ddist2 = 460.f*460.f;
+int lray = -1;
 
 // game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
@@ -665,8 +666,8 @@ const GLsizeiptr voxel_numind = 36;
 const GLsizeiptr voxel_numvert = 25;
 ESModel mdlVoxel;
 
-// shoot ray through voxels
-int rayi(const uint depth, const float stepsize, const vec start_pos) // returns just the voxel index
+// shoot ray through voxels (returns voxel index and hit vector)
+int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_pos)
 {
     vec inc;
     vMulS(&inc, state.look_dir, stepsize);
@@ -684,61 +685,8 @@ int rayi(const uint depth, const float stepsize, const vec start_pos) // returns
             if(state.voxels[j].w < 0.f){continue;}
             if(rb.x == state.voxels[j].x && rb.y == state.voxels[j].y && rb.z == state.voxels[j].z)
             {
-                hit = j;
-                break;
-            }
-        }
-        if(hit > -1){break;}
-    }
-    return hit;
-}
-int ray(vec* ep, const uint depth, const float stepsize, const vec start_pos) // returns hit position
-{
-    vec inc;
-    vMulS(&inc, state.look_dir, stepsize);
-    int hit = -1;
-    vec rp = start_pos;
-    for(uint i = 0; i < depth; i++)
-    {
-        vAdd(&rp, rp, inc);
-        vec rb;
-        rb.x = roundf(rp.x);
-        rb.y = roundf(rp.y);
-        rb.z = roundf(rp.z);
-        for(int j = 0; j < state.num_voxels; j++)
-        {
-            if(state.voxels[j].w < 0.f){continue;}
-            if(rb.x == state.voxels[j].x && rb.y == state.voxels[j].y && rb.z == state.voxels[j].z)
-            {
-                *ep = state.voxels[j];
-                hit = j;
-                break;
-            }
-        }
-        if(hit > -1){break;}
-    }
-    return hit;
-}
-int rayn(vec* ep, const uint depth, const float stepsize, const vec start_pos) // returns hit vector
-{
-    vec inc;
-    vMulS(&inc, state.look_dir, stepsize);
-    int hit = -1;
-    vec rp = start_pos;
-    for(uint i = 0; i < depth; i++)
-    {
-        vAdd(&rp, rp, inc);
-        vec rb;
-        rb.x = roundf(rp.x);
-        rb.y = roundf(rp.y);
-        rb.z = roundf(rp.z);
-        for(int j = 0; j < state.num_voxels; j++)
-        {
-            if(state.voxels[j].w < 0.f){continue;}
-            if(rb.x == state.voxels[j].x && rb.y == state.voxels[j].y && rb.z == state.voxels[j].z)
-            {
-                *ep = (vec){rp.x-rb.x, rp.y-rb.y, rp.z-rb.z};
-                vNorm(ep);
+                *hit_vec = (vec){rp.x-rb.x, rp.y-rb.y, rp.z-rb.z};
+                vNorm(hit_vec);
                 hit = j;
                 break;
             }
@@ -826,31 +774,23 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_1)
                 {
-                    vec er;
-                    const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-                    if(b > -1){state.sb = state.voxels[b].w;}
+                    if(lray > -1){state.sb = state.voxels[lray].w;}
                 }
                 else if(event.key.keysym.sym == SDLK_2) // - change selected node
                 {
-                    vec er;
-                    const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-                    state.sb = state.voxels[b].w - 1.f;
+                    state.sb = state.voxels[lray].w - 1.f;
                     if(state.sb < 0.f){state.sb = 16.f;}
-                    if(b > -1){state.voxels[b].w = state.sb;}
+                    if(lray > -1){state.voxels[lray].w = state.sb;}
                 }
                 else if(event.key.keysym.sym == SDLK_3) // + change selected node
                 {
-                    vec er;
-                    const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-                    state.sb = state.voxels[b].w + 1.f;
+                    state.sb = state.voxels[lray].w + 1.f;
                     if(state.sb > 16.f){state.sb = 0.f;}
-                    if(b > -1){state.voxels[b].w = state.sb;}
+                    if(lray > -1){state.voxels[lray].w = state.sb;}
                 }
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
-                    vec er;
-                    const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-                    if(b > 0){state.voxels[b].w = -1.f;}
+                    if(lray > 0){state.voxels[lray].w = -1.f;}
                 }
                 else if(event.key.keysym.sym == SDLK_e) // place a voxel
                 {
@@ -903,21 +843,18 @@ void main_loop()
             {
                 if(focus_mouse == 0){break;}
 
-                vec er;
-                const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-
                 if(event.wheel.y > 0)
                 {
-                    state.sb = state.voxels[b].w + 1.f;
+                    state.sb = state.voxels[lray].w + 1.f;
                     if(state.sb > 16.f){state.sb = 0.f;}
                 }
                 else if(event.wheel.y < 0)
                 {
-                    state.sb = state.voxels[b].w - 1.f;
+                    state.sb = state.voxels[lray].w - 1.f;
                     if(state.sb < 0.f){state.sb = 16.f;}
                 }
 
-                if(b > -1){state.voxels[b].w = state.sb;}
+                if(lray > -1){state.voxels[lray].w = state.sb;}
             }
             break;
 
@@ -958,16 +895,11 @@ void main_loop()
                 }
                 else if(event.button.button == SDL_BUTTON_RIGHT) // remove pointed voxel
                 {
-                    vec er;
-                    const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-                    if(b > 0){state.voxels[b].w = -1.f;}
+                    if(lray > 0){state.voxels[lray].w = -1.f;}
                 }
                 else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
-                    vec er;
-                    const int b = ray(&er, RAY_DEPTH, RAY_STEP, ipp);
-                    //printf("r: %f \n", state.voxels[b].w);
-                    if(b > -1){state.sb = state.voxels[b].w;}
+                    if(lray > -1){state.sb = state.voxels[lray].w;}
                 }
                 else if(event.button.button == SDL_BUTTON_X1) // change movement speeds
                 {
@@ -1143,9 +1075,10 @@ void main_loop()
 
     // targeting voxel
     vec rp = state.pb;
-    int r = rayn(&rp, RAY_DEPTH, RAY_STEP, ipp);
+    int r = ray(&rp, RAY_DEPTH, RAY_STEP, ipp);
     if(r > -1)
     {
+        lray = r;
         vec diff = rp;
         rp = state.voxels[r];
 
