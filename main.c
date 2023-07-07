@@ -563,7 +563,7 @@ uint focus_mouse = 0;
 float ddist = 460.f;        // draw distance
 float ddist2 = 460.f*460.f; // draw distance squared
 
-// Game Data (for fast save and load)
+// game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
 typedef struct
 {
@@ -580,8 +580,8 @@ typedef struct
     float move_speed;   // player move speed
     vec pb;             // place block pos
     float sb;           // selected block
-
-} game_state;
+}
+game_state;
 game_state state; // 64mb
 
 void saveState()
@@ -1054,7 +1054,7 @@ void main_loop()
 
     // render voxels
     vec ipp = state.pp; // inverse player position
-    vInv(&ipp);   // <--
+    vInv(&ipp);         // <--
     for(int j = 1; j < state.num_voxels; j++)
     {
         if(state.voxels[j].w < 0.f || 
@@ -1106,8 +1106,6 @@ void main_loop()
         rp.x += diff.x;
         rp.y += diff.y;
         rp.z += diff.z;
-
-        //printf("%f - %f %f %f\n", vSumAbs(diff), diff.x, diff.y, diff.z);
 
         if(vSumAbs(diff) == 1.f)
         {
@@ -1162,7 +1160,7 @@ int main(int argc, char** argv)
 //*************************************
 // setup render context / window
 //*************************************
-    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS) < 0) //SDL_INIT_AUDIO
+    if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS) < 0)
     {
         printf("ERROR: SDL_Init(): %s\n", SDL_GetError());
         return 1;
@@ -1184,8 +1182,6 @@ int main(int argc, char** argv)
         return 1;
     }
     SDL_ShowCursor(0);
-    //SDL_SetRelativeMouseMode(SDL_TRUE);
-    //SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 
     // set icon
     s_icon = surfaceFromData((Uint32*)&icon, 16, 16);
