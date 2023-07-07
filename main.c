@@ -565,7 +565,7 @@ uint ks[10] = {0}; // keystate
 uint focus_mouse = 0;
 float ddist = 460.f;
 float ddist2 = 460.f*460.f;
-int lray = -1;
+int lray = 0;
 
 // game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
@@ -794,6 +794,8 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_e) // place a voxel
                 {
+                    if(state.pb.w == -1){break;}
+
                     if(state.num_voxels < max_voxels)
                     {
                         state.voxels[state.num_voxels] = state.pb;
@@ -874,6 +876,8 @@ void main_loop()
 
                 if(event.button.button == SDL_BUTTON_LEFT) // place a voxel
                 {
+                    if(state.pb.w == -1){break;}
+                    
                     if(state.num_voxels < max_voxels)
                     {
                         state.voxels[state.num_voxels] = state.pb;
@@ -1074,13 +1078,13 @@ void main_loop()
     glUniform1f(texoffset_id, state.sb);
 
     // targeting voxel
+    state.pb.w = -1.f;
     vec rp = state.pb;
-    int r = ray(&rp, RAY_DEPTH, RAY_STEP, ipp);
-    if(r > -1)
+    lray = ray(&rp, RAY_DEPTH, RAY_STEP, ipp);
+    if(lray > -1)
     {
-        lray = r;
         vec diff = rp;
-        rp = state.voxels[r];
+        rp = state.voxels[lray];
 
         vec fd = diff;
         fd.x = fabsf(diff.x);
@@ -1122,12 +1126,12 @@ void main_loop()
                     break;
                 }
             }
-            if(rpif == 1){state.pb = rp;}
+            if(rpif == 1)
+            {
+                state.pb   = rp;
+                state.pb.w = 1.f;
+            }
         }
-    }
-    else
-    {
-        state.pb = (vec){0.f, 0.f, 0.f};
     }
 
     // crosshair voxel
