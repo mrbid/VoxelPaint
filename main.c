@@ -561,11 +561,13 @@ Uint32 winw = 1024, winh = 768;
 Uint32 winw2 = 512, winh2 = 384;
 float ww, wh;
 float aspect, t = 0.f;
-uint ks[10] = {0}; // keystate
-uint focus_mouse = 0;
-float ddist = 460.f;
+uint ks[10] = {0};      // keystate
+uint focus_mouse = 0;   // mouse lock
+float ddist = 460.f;    // view distance
 float ddist2 = 460.f*460.f;
-int lray = 0;
+int lray = 0;           // pointed at node index
+float ptt = 0.f;        // place timing trigger (for repeat place)
+float dtt = 0.f;        // delete timing trigger (for repeat delete)
 
 // game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
@@ -696,6 +698,32 @@ int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_po
     return hit;
 }
 
+//
+int placeVoxel(const float speed)
+{
+    if(state.pb.w == -1){return 0;}
+
+    ptt = t+speed;
+
+    for(uint i = 0; i < max_voxels; i++)
+    {
+        if(state.voxels[i].w < 0.f)
+        {
+            state.voxels[i] = state.pb;
+            state.voxels[i].w = state.sb;
+            return 1;
+        }
+    }
+    if(state.num_voxels < max_voxels)
+    {
+        state.voxels[state.num_voxels] = state.pb;
+        state.voxels[state.num_voxels].w = state.sb;
+        state.num_voxels++;
+        return 1;
+    }
+    return 0;
+}
+
 //*************************************
 // utility functions
 //*************************************
@@ -791,29 +819,11 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
                     if(lray > 0){state.voxels[lray].w = -1.f;}
+                    dtt = t+0.3f;
                 }
                 else if(event.key.keysym.sym == SDLK_e) // place a voxel
                 {
-                    if(state.pb.w == -1){break;}
-
-                    if(state.num_voxels < max_voxels)
-                    {
-                        state.voxels[state.num_voxels] = state.pb;
-                        state.voxels[state.num_voxels].w = state.sb;
-                        state.num_voxels++;
-                    }
-                    else
-                    {
-                        for(uint i = 0; i < max_voxels; i++)
-                        {
-                            if(state.voxels[i].w < 0.f)
-                            {
-                                state.voxels[i] = state.pb;
-                                state.voxels[i].w = state.sb;
-                                break;
-                            }
-                        }
-                    }
+                    placeVoxel(0.3f);
                 }
                 else if(event.key.keysym.sym == SDLK_f) // change movement speeds
                 {
@@ -838,6 +848,8 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_UP){ks[7] = 0;}
                 else if(event.key.keysym.sym == SDLK_DOWN){ks[8] = 0;}
                 else if(event.key.keysym.sym == SDLK_SPACE || event.key.keysym.sym == SDLK_LCTRL){ks[9] = 0;}
+                else if(event.key.keysym.sym == SDLK_e){ptt = 0.f;}
+                else if(event.key.keysym.sym == SDLK_q){dtt = 0.f;}
             }
             break;
 
@@ -876,30 +888,12 @@ void main_loop()
 
                 if(event.button.button == SDL_BUTTON_LEFT) // place a voxel
                 {
-                    if(state.pb.w == -1){break;}
-                    
-                    if(state.num_voxels < max_voxels)
-                    {
-                        state.voxels[state.num_voxels] = state.pb;
-                        state.voxels[state.num_voxels].w = state.sb;
-                        state.num_voxels++;
-                    }
-                    else
-                    {
-                        for(uint i = 0; i < max_voxels; i++)
-                        {
-                            if(state.voxels[i].w < 0.f)
-                            {
-                                state.voxels[i] = state.pb;
-                                state.voxels[i].w = state.sb;
-                                break;
-                            }
-                        }
-                    }
+                    placeVoxel(0.3f);                    
                 }
                 else if(event.button.button == SDL_BUTTON_RIGHT) // remove pointed voxel
                 {
                     if(lray > 0){state.voxels[lray].w = -1.f;}
+                    dtt = t+0.3f;
                 }
                 else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
@@ -924,6 +918,8 @@ void main_loop()
 
             case SDL_MOUSEBUTTONUP:
             {
+                if(event.button.button == SDL_BUTTON_LEFT){ptt = 0.f;}
+                else if(event.button.button == SDL_BUTTON_RIGHT){dtt = 0.f;}
                 md = 0;
             }
             break;
@@ -960,6 +956,15 @@ void main_loop()
     if(focus_mouse == 1)
     {
         mGetViewZ(&state.look_dir, view);
+
+        if(ptt != 0.f && t > ptt)
+            placeVoxel(0.1f);
+        
+        if(dtt != 0.f && t > dtt)
+        {
+            if(lray > 0){state.voxels[lray].w = -1.f;}
+            dtt = t+0.1f;
+        }
 
         if(ks[0] == 1) // W
         {
