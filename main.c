@@ -540,8 +540,8 @@ const unsigned char tiles[] = { // 272, 16, 3
 
 // main settings
 //#define SKYBLUE
-#define RAY_DEPTH 100
-#define RAY_STEP 0.25f
+#define RAY_DEPTH 300
+#define RAY_STEP 0.125f
 
 #include "inc/esAux4.h"
 
