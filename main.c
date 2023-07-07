@@ -795,6 +795,10 @@ void main_loop()
 // input handling
 //*************************************
     static int mx=0, my=0, lx=0, ly=0, md=0;
+    
+    vec ipp = state.pp; // inverse player position
+    vInv(&ipp);         // <--
+    
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {
@@ -821,8 +825,6 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_1)
                 {
                     vec er;
-                    vec ipp = state.pp;
-                    vInv(&ipp);
                     const int b = ray(&er, 100, 0.25f, ipp);
                     if(b > -1){state.sb = state.voxels[b].w;}
                 }
@@ -830,17 +832,23 @@ void main_loop()
                 {
                     state.sb -= 1.f;
                     if(state.sb < 0.f){state.sb = 16.f;}
+
+                    vec er;
+                    const int b = ray(&er, 100, 0.25f, ipp);
+                    if(b > -1){state.voxels[b].w = state.sb;}
                 }
                 else if(event.key.keysym.sym == SDLK_3) // + change selected node
                 {
                     state.sb += 1.f;
                     if(state.sb > 16.f){state.sb = 0.f;}
+
+                    vec er;
+                    const int b = ray(&er, 100, 0.25f, ipp);
+                    if(b > -1){state.voxels[b].w = state.sb;}
                 }
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
                     vec er;
-                    vec ipp = state.pp;
-                    vInv(&ipp);
                     const int b = ray(&er, 100, 0.25f, ipp);
                     if(b > 0){state.voxels[b].w = -1.f;}
                 }
@@ -894,6 +902,7 @@ void main_loop()
             case SDL_MOUSEWHEEL: // change selected node
             {
                 if(focus_mouse == 0){break;}
+
                 if(event.wheel.y > 0)
                 {
                     state.sb += 1.f;
@@ -904,6 +913,10 @@ void main_loop()
                     state.sb -= 1.f;
                     if(state.sb < 0.f){state.sb = 16.f;}
                 }
+
+                vec er;
+                const int b = ray(&er, 100, 0.25f, ipp);
+                if(b > -1){state.voxels[b].w = state.sb;}
             }
             break;
 
@@ -945,16 +958,12 @@ void main_loop()
                 else if(event.button.button == SDL_BUTTON_RIGHT) // remove pointed voxel
                 {
                     vec er;
-                    vec ipp = state.pp;
-                    vInv(&ipp);
                     const int b = ray(&er, 100, 0.25f, ipp);
                     if(b > 0){state.voxels[b].w = -1.f;}
                 }
                 else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
                     vec er;
-                    vec ipp = state.pp;
-                    vInv(&ipp);
                     const int b = ray(&er, 100, 0.25f, ipp);
                     //printf("r: %f \n", state.voxels[b].w);
                     if(b > -1){state.sb = state.voxels[b].w;}
@@ -1114,8 +1123,6 @@ void main_loop()
     glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
 
     // render voxels
-    vec ipp = state.pp; // inverse player position
-    vInv(&ipp);         // <--
     for(int j = 1; j < state.num_voxels; j++)
     {
         if(state.voxels[j].w < 0.f || 
@@ -1187,16 +1194,6 @@ void main_loop()
     else
     {
         state.pb = (vec){0.f, 0.f, 0.f};
-    }
-
-    if(vSumAbs(state.pb) > 0.f)
-    {
-        mIdent(&model);
-        mSetPos(&model, (vec){state.pb.x, state.pb.y, state.pb.z});
-        mScale(&model, 0.5f, 0.5f, 0.5f);
-        mMul(&modelview, &model, &view);
-        glUniformMatrix4fv(modelview_id, 1, GL_FALSE, (float*)&modelview.m[0][0]);
-        glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
     }
 
     // crosshair voxel
