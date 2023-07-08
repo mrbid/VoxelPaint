@@ -1252,7 +1252,7 @@ int main(int argc, char** argv)
     printf("Linked against SDL version %u.%u.%u.\n", linked.major, linked.minor, linked.patch);
     printf("----\n");
     printf(">>> Voxel Paint <<<\n\n");
-    printf("James William Flecher (github.com/mrbid)\n\n");
+    printf("James William Fletcher (github.com/mrbid)\n\n");
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
     printf("L-SHIFT + SPACE = Move up and down relative Z.\n");
@@ -1334,7 +1334,7 @@ int main(int argc, char** argv)
     // default voxels
     memset(state.voxels, 0x00, sizeof(vec)*max_voxels);
     state.voxels[0] = (vec){0.f, 0.f, 0.f, 13.f};
-    state.num_voxels = 2;
+    state.num_voxels = 1;
 
     // load states
     if(loadState() == 0)
