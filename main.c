@@ -557,8 +557,8 @@ char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
 SDL_Surface* s_icon = NULL;
-Sint32 winw = 1024, winh = 768;
-Sint32 winw2 = 512, winh2 = 384;
+int winw = 1024, winh = 768;
+int winw2 = 512, winh2 = 384;
 float ww, wh;
 float aspect, t = 0.f;
 uint ks[10] = {0};      // keystate
@@ -772,7 +772,7 @@ void main_loop()
 //*************************************
 // input handling
 //*************************************
-    static int mx=0, my=0, md=0;
+    static int mx=0, my=0, lx=0, ly=0, md=0;
     
     vec ipp = state.pp; // inverse player position
     vInv(&ipp);         // <--
@@ -798,7 +798,6 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_ESCAPE) // unlock mouse focus
                 {
                     focus_mouse = 0;
-                    //SDL_SetRelativeMouseMode(SDL_FALSE);
                     SDL_ShowCursor(1);
                 }
                 else if(event.key.keysym.sym == SDLK_1)
@@ -882,16 +881,34 @@ void main_loop()
             }
             break;
 
+            case SDL_MOUSEMOTION:
+            {
+                mx = event.motion.x;
+                my = event.motion.y;
+            }
+            break;
+
+            case SDL_MOUSEBUTTONUP:
+            {
+                if(event.button.button == SDL_BUTTON_LEFT){ptt = 0.f;}
+                else if(event.button.button == SDL_BUTTON_RIGHT){dtt = 0.f;}
+                md = 0;
+            }
+            break;
+
             case SDL_MOUSEBUTTONDOWN:
             {
+                lx = event.button.x;
+                ly = event.button.y;
                 mx = event.button.x;
                 my = event.button.y;
 
                 if(focus_mouse == 0) // lock mouse focus on every mouse input to the window
                 {
-                    focus_mouse = 1;
-                    //SDL_SetRelativeMouseMode(SDL_TRUE);
                     SDL_ShowCursor(0);
+                    // SDL_WarpMouseInWindow(wnd, winw2, winh2);
+                    // mx = winw2, my = winh2;
+                    focus_mouse = 1;
                     break;
                 }
 
@@ -915,21 +932,6 @@ void main_loop()
                     else
                         state.move_speed = 9.3f;
                 }
-            }
-            break;
-
-            case SDL_MOUSEMOTION:
-            {
-                mx = event.motion.x;
-                my = event.motion.y;
-            }
-            break;
-
-            case SDL_MOUSEBUTTONUP:
-            {
-                if(event.button.button == SDL_BUTTON_LEFT){ptt = 0.f;}
-                else if(event.button.button == SDL_BUTTON_RIGHT){dtt = 0.f;}
-                md = 0;
             }
             break;
 
@@ -1035,17 +1037,33 @@ void main_loop()
     //*************************************
     // camera/mouse control
     //*************************************
-        if(mx != winw2 || my != winh2)
+        // if(mx != winw2 || my != winh2)
+        // {
+        //     state.xrot += ((float)(winw2-mx))*state.sens;
+        //     state.yrot += ((float)(winh2-my))*state.sens;
+        
+        //     if(state.yrot > 3.f)
+        //         state.yrot = 3.f;
+        //     if(state.yrot < 0.f)
+        //         state.yrot = 0.f;
+            
+        //     SDL_WarpMouseInWindow(wnd, winw2, winh2);
+        // }
+
+        const float xd = lx-mx;
+        const float yd = ly-my;
+        if(xd != 0 || yd != 0)
         {
-            state.xrot += (float)(winw2-mx)*state.sens;
-            state.yrot += (float)(winh2-my)*state.sens;
+            state.xrot += xd*state.sens;
+            state.yrot += yd*state.sens;
         
             if(state.yrot > 3.f)
                 state.yrot = 3.f;
             if(state.yrot < 0.f)
                 state.yrot = 0.f;
             
-            SDL_WarpMouseInWindow(wnd, winw2, winh2);
+            lx = winw2, ly = winh2;
+            SDL_WarpMouseInWindow(wnd, lx, ly);
         }
     }
 
@@ -1186,7 +1204,6 @@ int main(int argc, char** argv)
         printf("ERROR: SDL_GL_CreateContext(): %s\n", SDL_GetError());
         return 1;
     }
-    //SDL_SetRelativeMouseMode(SDL_TRUE);
     //SDL_ShowCursor(0);
 
     // set icon
@@ -1329,6 +1346,7 @@ int main(int argc, char** argv)
         state.pp = (vec){0.f, 4.f, 0.f};
         state.move_speed = 9.3f;
         state.sb = 10.f;
+        state.pb = (vec){0.f, 0.f, 0.f, -1.f};
     }
 
     // argv mouse sensitivity
