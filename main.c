@@ -774,9 +774,9 @@ void traceViewPath(const uint face)
         }
     }
 }
-int placeVoxel(const float speed)
+int placeVoxel(const float repeat_delay)
 {
-    ptt = t+speed;
+    ptt = t+repeat_delay;
 
     if(g.pb.w == -1){return 0;}
 
@@ -856,9 +856,6 @@ void main_loop()
         // on input a new idle is set, and a
         // count-down for a new save begins.
     }
-    
-    ipp = g.pp; // inverse player position
-    vInv(&ipp); // <--
     
     SDL_Event event;
     while(SDL_PollEvent(&event))
@@ -1150,19 +1147,6 @@ void main_loop()
     //*************************************
     // camera/mouse control
     //*************************************
-        // if(mx != winw2 || my != winh2)
-        // {
-        //     g.xrot += ((float)(winw2-mx))*g.sens;
-        //     g.yrot += ((float)(winh2-my))*g.sens;
-        
-        //     if(g.yrot > 3.f)
-        //         g.yrot = 3.f;
-        //     if(g.yrot < 0.f)
-        //         g.yrot = 0.f;
-            
-        //     SDL_WarpMouseInWindow(wnd, winw2, winh2);
-        // }
-
         const float xd = lx-mx;
         const float yd = ly-my;
         if(xd != 0 || yd != 0)
@@ -1200,6 +1184,8 @@ void main_loop()
     glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
 
     // render voxels
+    ipp = g.pp; // inverse player position (setting global 'ipp' here is perfect)
+    vInv(&ipp); // <--
     for(int j = 1; j < g.num_voxels; j++)
     {
         if(g.voxels[j].w < 0.f || 
@@ -1257,7 +1243,6 @@ int main(int argc, char** argv)
         printf("ERROR: SDL_GL_CreateContext(): %s\n", SDL_GetError());
         return 1;
     }
-    //SDL_ShowCursor(0);
 
     // set icon
     s_icon = surfaceFromData((Uint32*)&icon, 16, 16);
