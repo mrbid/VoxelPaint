@@ -773,6 +773,16 @@ void main_loop()
 // input handling
 //*************************************
     static int mx=0, my=0, lx=0, ly=0, md=0;
+    static float idle = 0.f;
+
+    // if user is idle for 3 minutes, save.
+    if(idle != 0.f && t-idle > 180.f)
+    {
+        saveState();
+        idle = 0.f; // so we only save once
+        // on input a new idle is set, and a
+        // count-down for a new save begins.
+    }
     
     vec ipp = state.pp; // inverse player position
     vInv(&ipp);         // <--
@@ -841,6 +851,7 @@ void main_loop()
                     state.move_speed = 9.3f;
                     state.sb = 10.f;
                 }
+                idle = t;
             }
             break;
 
@@ -859,6 +870,7 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_SPACE || event.key.keysym.sym == SDLK_LCTRL){ks[9] = 0;}
                 else if(event.key.keysym.sym == SDLK_e){ptt = 0.f;}
                 else if(event.key.keysym.sym == SDLK_q){dtt = 0.f;}
+                idle = t;
             }
             break;
 
@@ -878,13 +890,16 @@ void main_loop()
                 }
 
                 if(lray > -1){state.voxels[lray].w = state.sb;}
+                idle = t;
             }
             break;
 
             case SDL_MOUSEMOTION:
             {
+                if(focus_mouse == 0){break;}
                 mx = event.motion.x;
                 my = event.motion.y;
+                idle = t;
             }
             break;
 
@@ -893,6 +908,7 @@ void main_loop()
                 if(event.button.button == SDL_BUTTON_LEFT){ptt = 0.f;}
                 else if(event.button.button == SDL_BUTTON_RIGHT){dtt = 0.f;}
                 md = 0;
+                idle = t;
             }
             break;
 
@@ -932,6 +948,7 @@ void main_loop()
                     else
                         state.move_speed = 9.3f;
                 }
+                idle = t;
             }
             break;
 
