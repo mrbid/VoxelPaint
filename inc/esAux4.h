@@ -620,7 +620,7 @@ const GLchar* f14 =
     "void main()\n"
     "{\n"
         "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
-        "vec3 ambientColor = tcol.xyz * 0.33;\n"
+        "vec3 ambientColor = tcol.xyz * 0.42;\n"
         "vec3 lightDir = normalize(vlightPos - vertPos);\n"
         "float lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0);\n"
         //"gl_FragColor = vec4(ambientColor + lambertian*tcol.xyz, vertOpa);\n"
