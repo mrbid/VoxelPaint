@@ -798,7 +798,7 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_ESCAPE) // unlock mouse focus
                 {
                     focus_mouse = 0;
-                    SDL_SetRelativeMouseMode(SDL_FALSE);
+                    //SDL_SetRelativeMouseMode(SDL_FALSE);
                     //SDL_ShowCursor(1);
                 }
                 else if(event.key.keysym.sym == SDLK_1)
@@ -883,8 +883,8 @@ void main_loop()
                 if(focus_mouse == 0) // lock mouse focus on every mouse input to the window
                 {
                     focus_mouse = 1;
-                    SDL_SetRelativeMouseMode(SDL_TRUE);
-                    //SDL_ShowCursor(0);
+                    //SDL_SetRelativeMouseMode(SDL_TRUE);
+                    SDL_ShowCursor(0);
                     break;
                 }
 
