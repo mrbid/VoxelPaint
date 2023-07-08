@@ -557,8 +557,8 @@ char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
 SDL_Surface* s_icon = NULL;
-Uint32 winw = 1024, winh = 768;
-Uint32 winw2 = 512, winh2 = 384;
+Sint32 winw = 1024, winh = 768;
+Sint32 winw2 = 512, winh2 = 384;
 float ww, wh;
 float aspect, t = 0.f;
 uint ks[10] = {0};      // keystate
@@ -772,7 +772,7 @@ void main_loop()
 //*************************************
 // input handling
 //*************************************
-    static int mx=0, my=0, lx=0, ly=0, md=0;
+    static int mx=0, my=0, md=0;
     
     vec ipp = state.pp; // inverse player position
     vInv(&ipp);         // <--
@@ -799,7 +799,7 @@ void main_loop()
                 {
                     focus_mouse = 0;
                     //SDL_SetRelativeMouseMode(SDL_FALSE);
-                    //SDL_ShowCursor(1);
+                    SDL_ShowCursor(1);
                 }
                 else if(event.key.keysym.sym == SDLK_1)
                 {
@@ -832,6 +832,15 @@ void main_loop()
                         state.move_speed = 18.6f;
                     else
                         state.move_speed = 9.3f;
+                }
+                else if(event.key.keysym.sym == SDLK_r)
+                {
+                    state.sens = 0.003f;
+                    state.xrot = 0.f;
+                    state.yrot = 1.5f;
+                    state.pp = (vec){0.f, 4.f, 0.f};
+                    state.move_speed = 9.3f;
+                    state.sb = 10.f;
                 }
             }
             break;
@@ -875,8 +884,6 @@ void main_loop()
 
             case SDL_MOUSEBUTTONDOWN:
             {
-                lx = event.button.x;
-                ly = event.button.y;
                 mx = event.button.x;
                 my = event.button.y;
 
@@ -1028,21 +1035,17 @@ void main_loop()
     //*************************************
     // camera/mouse control
     //*************************************
-        
-        const int xd = lx-mx;
-        const int yd = ly-my;
-        if(xd != 0 || yd != 0)
+        if(mx != winw2 || my != winh2)
         {
-            state.xrot += xd*state.sens;
-            state.yrot += yd*state.sens;
+            state.xrot += (float)(winw2-mx)*state.sens;
+            state.yrot += (float)(winh2-my)*state.sens;
         
             if(state.yrot > 3.f)
                 state.yrot = 3.f;
             if(state.yrot < 0.f)
                 state.yrot = 0.f;
             
-            lx = winw2, ly = winh2;
-            SDL_WarpMouseInWindow(wnd, lx, ly);
+            SDL_WarpMouseInWindow(wnd, winw2, winh2);
         }
     }
 
@@ -1236,11 +1239,12 @@ int main(int argc, char** argv)
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
     printf("L-SHIFT + SPACE = Move up and down relative Z.\n");
-    printf("2-3 / Mouse Scroll Wheel = Change selected node.\n");
+    printf("2-3 / Mouse Scroll Wheel = Change pointed node texture.\n");
     printf("E / Left Click = Place node.\n");
     printf("Q / Right Click = Delete pointed node.\n");
     printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
     printf("1 / Middle Click = Sets selected node to the same one you are pointing at.\n");
+    printf("R = Resets view and position matrix.\n");
     printf("Arrow Keys can be used to move the view around.\n\n");
     printf("Your state is automatically saved on exit.\n");
     printf("\n");
