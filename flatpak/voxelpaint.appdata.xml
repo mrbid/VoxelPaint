@@ -11,11 +11,12 @@
 		<ul>
 			<li>W,A,S,D = Move around based on relative orientation to X and Y.</li>
 			<li>L-SHIFT + SPACE = Move up and down relative Z.</li>
-			<li>2-3 / Mouse Scroll Wheel = Change selected node.</li>
+			<li>2-3 / Mouse Scroll Wheel = Change texture of pointed node.</li>
 			<li>E / Left Click = Place node.</li>
-			<li>Q / Right Click = Delete pointed node.</li>
+			<li>Q / Right Click = Delete node.</li>
 			<li>F / Mouse4 Click = Toggle player fast speed on and off.</li>
-			<li>1 / Middle Click = Sets selected node to the same one you are pointing at.</li>
+			<li>1 / Middle Click = Copys texture of pointed node.</li>
+			<li>R = Resets view and position matrix.</li>
 		</ul>
 
 		<p>Arrow Keys can be used to move the view around.</p>
