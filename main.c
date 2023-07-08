@@ -571,6 +571,16 @@ int lray = 0;           // pointed at node index
 float ptt = 0.f;        // place timing trigger (for repeat place)
 float dtt = 0.f;        // delete timing trigger (for repeat delete)
 
+//*************************************
+// utility functions
+//*************************************
+void timestamp(char* ts){const time_t tt = time(0);strftime(ts, 16, "%H:%M:%S", localtime(&tt));}
+forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
+
+//*************************************
+// game state functions
+//*************************************
+
 // game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
 typedef struct
@@ -584,10 +594,10 @@ typedef struct
     vec look_dir;       // camera look direction
 
     // player vars
-    vec pp;             // player position
-    float move_speed;   // player move speed
-    vec pb;             // place block pos
-    float sb;           // selected block
+    vec pp;     // player position
+    float ms;   // player move speed
+    vec pb;     // place block pos
+    float st;   // selected texture
 }
 game_state;
 game_state g; // 64mb
@@ -612,6 +622,9 @@ void saveState()
         }
         fclose(f);
     }
+    char tmp[16];
+    timestamp(tmp);
+    printf("[%s] Saved %u voxels\n", tmp, g.num_voxels);
 }
 
 uint loadState()
@@ -638,6 +651,10 @@ uint loadState()
     }
     return 0;
 }
+
+//*************************************
+// ray & render functions
+//*************************************
 
 // render state id's
 GLint projection_id;
@@ -690,7 +707,6 @@ int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_po
             if(rb.x == g.voxels[j].x && rb.y == g.voxels[j].y && rb.z == g.voxels[j].z)
             {
                 *hit_vec = (vec){rp.x-rb.x, rp.y-rb.y, rp.z-rb.z};
-                vNorm(hit_vec);
                 hit = j;
                 break;
             }
@@ -699,9 +715,6 @@ int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_po
     }
     return hit;
 }
-
-//
-
 void traceViewPath(const uint face)
 {
     g.pb.w = -1.f;
@@ -709,6 +722,7 @@ void traceViewPath(const uint face)
     lray = ray(&rp, RAY_DEPTH, RAY_STEP, ipp);
     if(lray > -1 && face == 1)
     {
+        vNorm(&rp);
         vec diff = rp;
         rp = g.voxels[lray];
 
@@ -771,14 +785,14 @@ int placeVoxel(const float speed)
         if(g.voxels[i].w < 0.f)
         {
             g.voxels[i] = g.pb;
-            g.voxels[i].w = g.sb;
+            g.voxels[i].w = g.st;
             return 1;
         }
     }
     if(g.num_voxels < max_voxels)
     {
         g.voxels[g.num_voxels] = g.pb;
-        g.voxels[g.num_voxels].w = g.sb;
+        g.voxels[g.num_voxels].w = g.st;
         g.num_voxels++;
         return 1;
     }
@@ -786,10 +800,8 @@ int placeVoxel(const float speed)
 }
 
 //*************************************
-// utility functions
+// more utility functions
 //*************************************
-//void timestamp(char* ts){const time_t tt = time(0);strftime(ts, 16, "%H:%M:%S", localtime(&tt));}
-forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
 forceinline uint insideFrustum(const float x, const float y, const float z)
 {
     const float xm = x+g.pp.x, ym = y+g.pp.y, zm = z+g.pp.z;
@@ -874,21 +886,21 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_1)
                 {
                     traceViewPath(0);
-                    if(lray > -1){g.sb = g.voxels[lray].w;}
+                    if(lray > -1){g.st = g.voxels[lray].w;}
                 }
                 else if(event.key.keysym.sym == SDLK_2) // - change selected node
                 {
                     traceViewPath(0);
-                    g.sb = g.voxels[lray].w - 1.f;
-                    if(g.sb < 0.f){g.sb = 16.f;}
-                    if(lray > -1){g.voxels[lray].w = g.sb;}
+                    g.st = g.voxels[lray].w - 1.f;
+                    if(g.st < 0.f){g.st = 16.f;}
+                    if(lray > -1){g.voxels[lray].w = g.st;}
                 }
                 else if(event.key.keysym.sym == SDLK_3) // + change selected node
                 {
                     traceViewPath(0);
-                    g.sb = g.voxels[lray].w + 1.f;
-                    if(g.sb > 16.f){g.sb = 0.f;}
-                    if(lray > -1){g.voxels[lray].w = g.sb;}
+                    g.st = g.voxels[lray].w + 1.f;
+                    if(g.st > 16.f){g.st = 0.f;}
+                    if(lray > -1){g.voxels[lray].w = g.st;}
                 }
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
@@ -903,10 +915,10 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_f) // change movement speeds
                 {
-                    if(g.move_speed == 9.3f)
-                        g.move_speed = 18.6f;
+                    if(g.ms == 9.3f)
+                        g.ms = 18.6f;
                     else
-                        g.move_speed = 9.3f;
+                        g.ms = 9.3f;
                 }
                 else if(event.key.keysym.sym == SDLK_r)
                 {
@@ -914,8 +926,8 @@ void main_loop()
                     g.xrot = 0.f;
                     g.yrot = 1.5f;
                     g.pp = (vec){0.f, 4.f, 0.f};
-                    g.move_speed = 9.3f;
-                    g.sb = 10.f;
+                    g.ms = 9.3f;
+                    g.st = 10.f;
                 }
 #ifdef VERBOSE
                 else if(event.key.keysym.sym == SDLK_p)
@@ -957,16 +969,16 @@ void main_loop()
                 traceViewPath(0);
                 if(event.wheel.y > 0)
                 {
-                    g.sb = g.voxels[lray].w + 1.f;
-                    if(g.sb > 16.f){g.sb = 0.f;}
+                    g.st = g.voxels[lray].w + 1.f;
+                    if(g.st > 16.f){g.st = 0.f;}
                 }
                 else if(event.wheel.y < 0)
                 {
-                    g.sb = g.voxels[lray].w - 1.f;
-                    if(g.sb < 0.f){g.sb = 16.f;}
+                    g.st = g.voxels[lray].w - 1.f;
+                    if(g.st < 0.f){g.st = 16.f;}
                 }
 
-                if(lray > -1){g.voxels[lray].w = g.sb;}
+                if(lray > -1){g.voxels[lray].w = g.st;}
                 idle = t;
             }
             break;
@@ -1019,14 +1031,14 @@ void main_loop()
                 else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
                     traceViewPath(0);
-                    if(lray > -1){g.sb = g.voxels[lray].w;}
+                    if(lray > -1){g.st = g.voxels[lray].w;}
                 }
                 else if(event.button.button == SDL_BUTTON_X1) // change movement speeds
                 {
-                    if(g.move_speed == 9.3f)
-                        g.move_speed = 18.6f;
+                    if(g.ms == 9.3f)
+                        g.ms = 18.6f;
                     else
-                        g.move_speed = 9.3f;
+                        g.ms = 9.3f;
                 }
                 idle = t;
             }
@@ -1081,13 +1093,13 @@ void main_loop()
         if(ks[0] == 1) // W
         {
             vec m;
-            vMulS(&m, g.look_dir, g.move_speed * dt);
+            vMulS(&m, g.look_dir, g.ms * dt);
             vSub(&g.pp, g.pp, m);
         }
         else if(ks[2] == 1) // S
         {
             vec m;
-            vMulS(&m, g.look_dir, g.move_speed * dt);
+            vMulS(&m, g.look_dir, g.ms * dt);
             vAdd(&g.pp, g.pp, m);
         }
 
@@ -1096,7 +1108,7 @@ void main_loop()
             vec vdc;
             mGetViewX(&vdc, view);
             vec m;
-            vMulS(&m, vdc, g.move_speed * dt);
+            vMulS(&m, vdc, g.ms * dt);
             vSub(&g.pp, g.pp, m);
         }
         else if(ks[3] == 1) // D
@@ -1104,7 +1116,7 @@ void main_loop()
             vec vdc;
             mGetViewX(&vdc, view);
             vec m;
-            vMulS(&m, vdc, g.move_speed * dt);
+            vMulS(&m, vdc, g.ms * dt);
             vAdd(&g.pp, g.pp, m);
         }
 
@@ -1113,7 +1125,7 @@ void main_loop()
             vec vdc;
             mGetViewY(&vdc, view);
             vec m;
-            vMulS(&m, vdc, g.move_speed * dt);
+            vMulS(&m, vdc, g.ms * dt);
             vSub(&g.pp, g.pp, m);
         }
         else if(ks[9] == 1) // SPACE (up)
@@ -1121,7 +1133,7 @@ void main_loop()
             vec vdc;
             mGetViewY(&vdc, view);
             vec m;
-            vMulS(&m, vdc, g.move_speed * dt);
+            vMulS(&m, vdc, g.ms * dt);
             vAdd(&g.pp, g.pp, m);
         }
 
@@ -1385,9 +1397,15 @@ int main(int argc, char** argv)
         g.xrot = 0.f;
         g.yrot = 1.5f;
         g.pp = (vec){0.f, 4.f, 0.f};
-        g.move_speed = 9.3f;
-        g.sb = 10.f;
+        g.ms = 9.3f;
+        g.st = 10.f;
         g.pb = (vec){0.f, 0.f, 0.f, -1.f};
+    }
+    else
+    {
+        char tmp[16];
+        timestamp(tmp);
+        printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
     }
 
     // argv mouse sensitivity
