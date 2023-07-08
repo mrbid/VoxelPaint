@@ -1256,11 +1256,11 @@ int main(int argc, char** argv)
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
     printf("L-SHIFT + SPACE = Move up and down relative Z.\n");
-    printf("2-3 / Mouse Scroll Wheel = Change pointed node texture.\n");
+    printf("2-3 / Mouse Scroll Wheel = Change texture of pointed node.\n");
     printf("E / Left Click = Place node.\n");
-    printf("Q / Right Click = Delete pointed node.\n");
+    printf("Q / Right Click = Delete node.\n");
     printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
-    printf("1 / Middle Click = Sets selected node to the same one you are pointing at.\n");
+    printf("1 / Middle Click = Copys texture of pointed node.\n");
     printf("R = Resets view and position matrix.\n");
     printf("Arrow Keys can be used to move the view around.\n\n");
     printf("Your state is automatically saved on exit.\n");
