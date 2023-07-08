@@ -15,7 +15,7 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * **E / Left Click** = Place node.
 * **Q / Right Click** = Delete node.
 * **F / Mouse4 Click** = Toggle player fast speed on and off.
-* **1 / Middle Click** = Sets selected node to the same one you are pointing at.
+* **1 / Middle Click** = Copys texture of pointed node.
 * **R** = Resets view and position matrix.
 
 Arrow Keys can be used to move the view around.
