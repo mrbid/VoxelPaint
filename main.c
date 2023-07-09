@@ -540,7 +540,7 @@ const unsigned char tiles[] = { // 272, 16, 3
 
 // main settings
 //#define SKYBLUE
-#define VERBOSE
+//#define VERBOSE
 #include "inc/esAux4.h"
 
 #define uint GLuint
