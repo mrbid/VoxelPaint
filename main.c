@@ -541,8 +541,6 @@ const unsigned char tiles[] = { // 272, 16, 3
 // main settings
 //#define SKYBLUE
 //#define VERBOSE
-#define RAY_DEPTH 300
-#define RAY_STEP 0.125f
 
 #include "inc/esAux4.h"
 
@@ -687,93 +685,264 @@ const GLsizeiptr voxel_numind = 36;
 const GLsizeiptr voxel_numvert = 25;
 ESModel mdlVoxel;
 
-// shoot ray through voxels (returns voxel index and hit vector)
-int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_pos)
+// hit_vec will be untouched by this if there's no collision (by hax)
+#define RAY_DEPTH 70
+int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 {
-    vec inc;
-    vMulS(&inc, g.look_dir, stepsize);
-    int hit = -1;
-    vec rp = start_pos;
-    for(uint i = 0; i < depth; i++)
+	int hit = -1;
+	float bestdist;
+	float start_pos[] = {vec_start_pos.x, vec_start_pos.y, vec_start_pos.z};
+	float look_dir[] = {g.look_dir.x, g.look_dir.y, g.look_dir.z};
+	for (int i = 0; i < g.num_voxels; i++)
     {
-        vAdd(&rp, rp, inc);
-        vec rb;
-        rb.x = roundf(rp.x);
-        rb.y = roundf(rp.y);
-        rb.z = roundf(rp.z);
-        for(int j = 0; j < g.num_voxels; j++)
+		if(g.voxels[i].w < 0.f){continue;}
+
+		float offset[] = {g.voxels[i].x - start_pos[0], g.voxels[i].y - start_pos[1], g.voxels[i].z - start_pos[2]};
+		int j = 0;
+
+		// hmmmmmm... is there some decent way to get around this...
+		float max = fabsf(offset[0]);
+		float tmp = fabsf(offset[1]);
+		if(tmp > max){max = tmp; j = 1;}
+		tmp = fabsf(offset[2]);
+		if(tmp > max){max = tmp; j = 2;}
+
+		if (max <= 0.5f) { // unlikely but better than breaking... costs some cycles though
+			*hit_vec = vec_start_pos;
+			return i;
+		}
+
+		float dist_to_start = offset[j];
+		if (dist_to_start > 0.f)
+			dist_to_start -= 0.5f;
+		else
+			dist_to_start += 0.5f;
+
+		const float multiplier = dist_to_start / look_dir[j];
+
+        // too far out (or not in the right direction), don't bother
+		if(multiplier > depth || (hit != -1 && multiplier > bestdist) || multiplier < 0.f){continue;}
+
+		// Might end up taking all 222 of those cycles below... :/
+		// At least better than what it was originally though
+		// And with enough out of range there's still a chance average comes out under
+		{
+			float pos[] = {start_pos[0] + (look_dir[0] * multiplier), start_pos[1] + (look_dir[1] * multiplier), start_pos[2] + (look_dir[2] * multiplier)};
+
+			if (pos[0] > g.voxels[i].x + 1.5f || pos[0] < g.voxels[i].x - 1.5f ||
+					pos[1] > g.voxels[i].y + 1.5f || pos[1] < g.voxels[i].y - 1.5f ||
+					pos[2] > g.voxels[i].z + 1.5f || pos[2] < g.voxels[i].z - 1.5f) {
+				continue; // not even a chance of hitting
+			}
+
+			if ((j == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) && // j == n so float inaccuracies won't proceed to tell me that it's out after I just put it on the edge
+					(j == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
+					(j == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f))) { // hit
+				hit = i;
+				float sign;
+				if(offset[j] > 0.f){sign = -1.f;}else{sign = 1.f;}
+				if(j == 0){hit_vec->x = sign;}else{hit_vec->x = 0.f;}
+				if(j == 1){hit_vec->y = sign;}else{hit_vec->y = 0.f;}
+				if(j == 2){hit_vec->z = sign;}else{hit_vec->z = 0.f;}
+
+				bestdist = multiplier;
+				continue; // no need to check side cases :P
+			}
+		}
+        ///
+		float first_dist;
+		char first_dir;
+		float second_dist;
+		char second_dir;
+		for (int n = 0, y = 0; n <= 2; n++)
         {
-            if(g.voxels[j].w < 0.f){continue;}
-            if(rb.x == g.voxels[j].x && rb.y == g.voxels[j].y && rb.z == g.voxels[j].z)
+			if (n != j)
             {
-                *hit_vec = (vec){rp.x-rb.x, rp.y-rb.y, rp.z-rb.z};
-                hit = j;
-                break;
-            }
-        }
-        if(hit > -1){break;}
-    }
-    return hit;
+				float dist;
+				if(offset[n] > 0){dist = offset[n] - 0.5f;}else{dist = offset[n] + 0.5f;}
+
+				dist = dist / look_dir[n];
+				if (y == 0) {
+					first_dist = dist;
+					first_dir = n;
+				} else {
+					if (dist < first_dist) {
+						second_dist = first_dist;
+						second_dir = first_dir;
+						first_dist = dist;
+						first_dir = n;
+					} else {
+						second_dist = dist;
+						second_dir = n;
+					}
+				}
+
+				y++;
+			}
+		}
+        ///
+		{
+			if(first_dist > depth || (hit != -1 && first_dist > bestdist)){continue;}
+
+			float pos[] = {start_pos[0] + (look_dir[0] * first_dist), start_pos[1] + (look_dir[1] * first_dist), start_pos[2] + (look_dir[2] * first_dist)};
+
+			if ((first_dir == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) &&
+					(first_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
+					(first_dir == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f)))
+            {
+				hit = i;
+				float sign;
+				if(offset[first_dir] > 0.f){sign = -1.f;}else{sign = 1.f;}
+				if(first_dir == 0){hit_vec->x = sign;}else{hit_vec->x = 0.f;}
+				if(first_dir == 1){hit_vec->y = sign;}else{hit_vec->y = 0.f;}
+				if(first_dir == 2){hit_vec->z = sign;}else{hit_vec->z = 0.f;}
+				bestdist = first_dist;
+				continue;
+			}
+		}
+        ///
+		{
+			if (second_dist > depth || (hit != -1 && second_dist > bestdist))
+				continue;
+
+			float pos[] = {start_pos[0] + (look_dir[0] * second_dist), start_pos[1] + (look_dir[1] * second_dist), start_pos[2] + (look_dir[2] * second_dist)};
+
+			if ((second_dir == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) &&
+					(second_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
+					(second_dir == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f)))
+            {
+				hit = i;
+				float sign;
+				if(offset[second_dir] > 0.f){sign = -1.f;}else{sign = 1.f;}
+				if(second_dir == 0){hit_vec->x = sign;}else{hit_vec->x = 0.f;}
+				if(second_dir == 1){hit_vec->y = sign;}else{hit_vec->y = 0.f;}
+				if(second_dir == 2){hit_vec->z = sign;}else{hit_vec->z = 0.f;}
+				bestdist = second_dist;
+				continue;
+			}
+		}
+	}
+
+	return hit;
 }
 void traceViewPath(const uint face)
 {
     g.pb.w = -1.f;
     vec rp = g.pb;
-    lray = ray(&rp, RAY_DEPTH, RAY_STEP, ipp);
+    lray = ray(&rp, RAY_DEPTH, ipp);
     if(lray > -1 && face == 1)
     {
-        vNorm(&rp);
-        vec diff = rp;
-        rp = g.voxels[lray];
-
-        vec fd = diff;
-        fd.x = fabsf(diff.x);
-        fd.y = fabsf(diff.y);
-        fd.z = fabsf(diff.z);
-        if(fd.x > fd.y && fd.x > fd.z)
+        rp.x += g.voxels[lray].x;
+        rp.y += g.voxels[lray].y;
+        rp.z += g.voxels[lray].z;
+        uint rpif = 1;
+        for(int i = 0; i < g.num_voxels; i++)
         {
-            diff.y = 0.f;
-            diff.z = 0.f;
-        }
-        else if(fd.y > fd.x && fd.y > fd.z)
-        {
-            diff.x = 0.f;
-            diff.z = 0.f;
-        }
-        else if(fd.z > fd.x && fd.z > fd.y)
-        {
-            diff.x = 0.f;
-            diff.y = 0.f;
-        }
-        diff.x = roundf(diff.x);
-        diff.y = roundf(diff.y);
-        diff.z = roundf(diff.z);
-
-        rp.x += diff.x;
-        rp.y += diff.y;
-        rp.z += diff.z;
-
-        if(vSumAbs(diff) == 1.f)
-        {
-            uint rpif = 1;
-            for(int i = 0; i < g.num_voxels; i++)
+            if(g.voxels[i].w < 0.f){continue;}
+            if(rp.x == g.voxels[i].x && rp.y == g.voxels[i].y && rp.z == g.voxels[i].z)
             {
-                if(g.voxels[i].w < 0.f){continue;}
-
-                if(rp.x == g.voxels[i].x && rp.y == g.voxels[i].y && rp.z == g.voxels[i].z)
-                {
-                    rpif = 0;
-                    break;
-                }
+                rpif = 0;
+                break;
             }
-            if(rpif == 1)
-            {
-                g.pb   = rp;
-                g.pb.w = 1.f;
-            }
+        }
+        if(rpif == 1)
+        {
+            g.pb   = rp;
+            g.pb.w = 1.f;
         }
     }
 }
+
+// #define RAY_DEPTH 300
+// #define RAY_STEP 0.125f
+// // shoot ray through voxels (returns voxel index and hit vector)
+// int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_pos)
+// {
+//     vec inc;
+//     vMulS(&inc, g.look_dir, stepsize);
+//     int hit = -1;
+//     vec rp = start_pos;
+//     for(uint i = 0; i < depth; i++)
+//     {
+//         vAdd(&rp, rp, inc);
+//         vec rb;
+//         rb.x = roundf(rp.x);
+//         rb.y = roundf(rp.y);
+//         rb.z = roundf(rp.z);
+//         for(int j = 0; j < g.num_voxels; j++)
+//         {
+//             if(g.voxels[j].w < 0.f){continue;}
+//             if(rb.x == g.voxels[j].x && rb.y == g.voxels[j].y && rb.z == g.voxels[j].z)
+//             {
+//                 *hit_vec = (vec){rp.x-rb.x, rp.y-rb.y, rp.z-rb.z};
+//                 hit = j;
+//                 break;
+//             }
+//         }
+//         if(hit > -1){break;}
+//     }
+//     return hit;
+// }
+// void traceViewPath(const uint face)
+// {
+//     g.pb.w = -1.f;
+//     vec rp = g.pb;
+//     lray = ray(&rp, RAY_DEPTH, RAY_STEP, ipp);
+//     if(lray > -1 && face == 1)
+//     {
+//         vNorm(&rp);
+//         vec diff = rp;
+//         rp = g.voxels[lray];
+
+//         vec fd = diff;
+//         fd.x = fabsf(diff.x);
+//         fd.y = fabsf(diff.y);
+//         fd.z = fabsf(diff.z);
+//         if(fd.x > fd.y && fd.x > fd.z)
+//         {
+//             diff.y = 0.f;
+//             diff.z = 0.f;
+//         }
+//         else if(fd.y > fd.x && fd.y > fd.z)
+//         {
+//             diff.x = 0.f;
+//             diff.z = 0.f;
+//         }
+//         else if(fd.z > fd.x && fd.z > fd.y)
+//         {
+//             diff.x = 0.f;
+//             diff.y = 0.f;
+//         }
+//         diff.x = roundf(diff.x);
+//         diff.y = roundf(diff.y);
+//         diff.z = roundf(diff.z);
+
+//         rp.x += diff.x;
+//         rp.y += diff.y;
+//         rp.z += diff.z;
+
+//         if(vSumAbs(diff) == 1.f)
+//         {
+//             uint rpif = 1;
+//             for(int i = 0; i < g.num_voxels; i++)
+//             {
+//                 if(g.voxels[i].w < 0.f){continue;}
+
+//                 if(rp.x == g.voxels[i].x && rp.y == g.voxels[i].y && rp.z == g.voxels[i].z)
+//                 {
+//                     rpif = 0;
+//                     break;
+//                 }
+//             }
+//             if(rpif == 1)
+//             {
+//                 g.pb   = rp;
+//                 g.pb.w = 1.f;
+//             }
+//         }
+//     }
+// }
+
 int placeVoxel(const float repeat_delay)
 {
     ptt = t+repeat_delay;
@@ -802,10 +971,11 @@ int placeVoxel(const float repeat_delay)
 //*************************************
 // more utility functions
 //*************************************
-forceinline uint insideFrustum(const float x, const float y, const float z)
+void printAttrib(SDL_GLattr attr, char* name)
 {
-    const float xm = x+g.pp.x, ym = y+g.pp.y, zm = z+g.pp.z;
-    return (xm*g.look_dir.x) + (ym*g.look_dir.y) + (zm*g.look_dir.z) > 0.f; // check the angle
+    int i;
+    SDL_GL_GetAttribute(attr, &i);
+    printf("%s: %i\n", name, i);
 }
 void doPerspective()
 {
@@ -816,17 +986,164 @@ void doPerspective()
     mPerspective(&projection, 60.0f, ww / wh, 0.01f, ddist);
     glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
 }
-void printAttrib(SDL_GLattr attr, char* name)
+forceinline uint insideFrustum(const float x, const float y, const float z)
 {
-    int i;
-    SDL_GL_GetAttribute(attr, &i);
-    printf("%s: %i\n", name, i);
+    const float xm = x+g.pp.x, ym = y+g.pp.y, zm = z+g.pp.z;
+    return (xm*g.look_dir.x) + (ym*g.look_dir.y) + (zm*g.look_dir.z) > 0.f; // check the angle
+}
+forceinline Uint32 getpixel(const SDL_Surface *surface, Uint32 x, Uint32 y)
+{
+    const Uint8 *p = (Uint8*)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel;
+    return *(Uint32*)p;
+}
+forceinline void setpixel(SDL_Surface *surface, Uint32 x, Uint32 y, Uint32 pix)
+{
+    const Uint8* pixel = (Uint8*)surface->pixels + (y * surface->pitch) + (x * surface->format->BytesPerPixel);
+    *((Uint32*)pixel) = pix;
 }
 SDL_Surface* surfaceFromData(const Uint32* data, Uint32 w, Uint32 h)
 {
     SDL_Surface* s = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
     memcpy(s->pixels, data, s->pitch*h);
     return s;
+}
+SDL_Surface* SDL_RGBA32Surface(Uint32 w, Uint32 h)
+{
+    return SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+}
+void SDL_KeyGreenToAlpha(SDL_Surface* image)
+{
+    SDL_SetColorKey(image, SDL_TRUE, SDL_MapRGB(image->format, 0, 255, 0));
+}
+void replaceColour(SDL_Surface* surf, SDL_Rect r, Uint32 old_color, Uint32 new_color)
+{
+    const Uint32 max_y = r.y+r.h;
+    const Uint32 max_x = r.x+r.w;
+    for(Uint32 y = r.y; y < max_y; ++y)
+        for(Uint32 x = r.x; x < max_x; ++x)
+            if(getpixel(surf, x, y) == old_color){setpixel(surf, x, y, new_color);}
+}
+void line(SDL_Surface *surface, Uint32 x0, Uint32 y0, Uint32 x1, Uint32 y1, Uint32 colour)
+{
+    const int dx = abs((Sint32)x1 - (Sint32)x0), sx = x0 < x1 ? 1 : -1;
+    const int dy = abs((Sint32)y1 - (Sint32)y0), sy = y0 < y1 ? 1 : -1;
+    int err = (dx > dy ? dx : -dy) / 2, e2;
+    while(1)
+    {
+        setpixel(surface, x0, y0, colour);
+        if(x0 == x1 && y0 == y1){break;}
+        e2 = err;
+        if(e2 > -dx){err -= dy; x0 += sx;}
+        if(e2 < dy){err += dx; y0 += sy;}
+    }
+}
+
+//*************************************
+// Simple Font
+//*************************************
+const Uint8 font_map[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\xFF\xFF\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\0\0\0\xFF\0\0\0\xFF\xFF\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\0\xFF\0\0\0\0\xFF\0\0\0\0\xFF\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\xFF\xFF\0\0\0\0\0\xFF\0\0\0\0\0\xFF\xFF\0\0\xFF\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\0\0\0\xFF\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\xFF\0\xFF\xFF\0\0\0\0\xFF\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\0\0\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\xFF\0\0\0\0\xFF\0\0\xFF\0\xFF\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\0\xFF\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\xFF\xFF\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\0\0\0\0\xFF\0\0\0\0\0\0\0\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\xFF\xFF\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\0\0\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\xFF\xFF\xFF\xFF\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\xFF\0\0\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\0\xFF\xFF\xFF\xFF\0\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\xFF\xFF\0\0\0\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\0\0\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\0\0\0\0\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\0\0\0\0\xFF\xFF\0\0\xFF\0\0\xFF\xFF\xFF\xFF\xFF\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+void drawText(SDL_Surface* o, const char* s, Uint32 x, Uint32 y, Uint8 colour)
+{
+    static const Uint32 m = 1;
+    static SDL_Surface* font_black = NULL;
+    static SDL_Surface* font_white = NULL;
+    if(font_black == NULL)
+    {
+        font_black = SDL_RGBA32Surface(447, 11);
+        for(int y = 0; y < font_black->h; y++)
+        {
+            for(int x = 0; x < font_black->w; x++)
+            {
+                const Uint8 c = font_map[(y*font_black->w)+x];
+                setpixel(font_black, x, y, SDL_MapRGBA(font_black->format, c, c, c, 255-c));
+            }
+        }
+        font_white = SDL_RGBA32Surface(447, 11);
+        SDL_BlitSurface(font_black, &font_black->clip_rect, font_white, &font_white->clip_rect);
+        replaceColour(font_white, font_white->clip_rect, 0xFF000000, 0x00000000);
+    }
+    if(s[0] == '*' && s[1] == 'K') // signal cleanup
+    {
+        SDL_FreeSurface(font_black);
+        SDL_FreeSurface(font_white);
+        font_black = NULL;
+        return;
+    }
+    SDL_Surface* font = font_black;
+    if(colour == 1){font = font_white;}
+    SDL_Rect dr = {x, y, 0, 0};
+    
+    const Uint32 len = strlen(s);
+    for(Uint32 i = 0; i < len; i++)
+    {
+        if(s[i] == 'A'){SDL_BlitSurface(font, &(SDL_Rect){0,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'B'){SDL_BlitSurface(font, &(SDL_Rect){8,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'C'){SDL_BlitSurface(font, &(SDL_Rect){15,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'D'){SDL_BlitSurface(font, &(SDL_Rect){22,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'E'){SDL_BlitSurface(font, &(SDL_Rect){30,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'F'){SDL_BlitSurface(font, &(SDL_Rect){36,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'G'){SDL_BlitSurface(font, &(SDL_Rect){42,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'H'){SDL_BlitSurface(font, &(SDL_Rect){50,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'I'){SDL_BlitSurface(font, &(SDL_Rect){58,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == 'J'){SDL_BlitSurface(font, &(SDL_Rect){63,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'K'){SDL_BlitSurface(font, &(SDL_Rect){69,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'L'){SDL_BlitSurface(font, &(SDL_Rect){76,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'M'){SDL_BlitSurface(font, &(SDL_Rect){82,0,9,9}, o, &dr); dr.x += 9+m;}
+        else if(s[i] == 'N'){SDL_BlitSurface(font, &(SDL_Rect){92,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'O'){SDL_BlitSurface(font, &(SDL_Rect){99,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'P'){SDL_BlitSurface(font, &(SDL_Rect){107,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'Q'){SDL_BlitSurface(font, &(SDL_Rect){114,0,7,11}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'R'){SDL_BlitSurface(font, &(SDL_Rect){122,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'S'){SDL_BlitSurface(font, &(SDL_Rect){130,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'T'){SDL_BlitSurface(font, &(SDL_Rect){137,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'U'){SDL_BlitSurface(font, &(SDL_Rect){144,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'V'){SDL_BlitSurface(font, &(SDL_Rect){152,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'W'){SDL_BlitSurface(font, &(SDL_Rect){159,0,10,9}, o, &dr); dr.x += 10+m;}
+        else if(s[i] == 'X'){SDL_BlitSurface(font, &(SDL_Rect){170,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'Y'){SDL_BlitSurface(font, &(SDL_Rect){177,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'Z'){SDL_BlitSurface(font, &(SDL_Rect){184,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'a'){SDL_BlitSurface(font, &(SDL_Rect){191,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'b'){SDL_BlitSurface(font, &(SDL_Rect){198,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'c'){SDL_BlitSurface(font, &(SDL_Rect){205,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'd'){SDL_BlitSurface(font, &(SDL_Rect){211,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'e'){SDL_BlitSurface(font, &(SDL_Rect){218,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'f'){SDL_BlitSurface(font, &(SDL_Rect){225,0,4,9}, o, &dr); dr.x += 3+m;}
+        else if(s[i] == 'g'){SDL_BlitSurface(font, &(SDL_Rect){229,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'h'){SDL_BlitSurface(font, &(SDL_Rect){236,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'i'){SDL_BlitSurface(font, &(SDL_Rect){243,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == 'j'){SDL_BlitSurface(font, &(SDL_Rect){246,0,3,11}, o, &dr); dr.x += 3+m;}
+        else if(s[i] == 'k'){SDL_BlitSurface(font, &(SDL_Rect){250,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'l'){SDL_BlitSurface(font, &(SDL_Rect){257,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == 'm'){SDL_BlitSurface(font, &(SDL_Rect){260,0,10,9}, o, &dr); dr.x += 10+m;}
+        else if(s[i] == 'n'){SDL_BlitSurface(font, &(SDL_Rect){271,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'o'){SDL_BlitSurface(font, &(SDL_Rect){278,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'p'){SDL_BlitSurface(font, &(SDL_Rect){285,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'q'){SDL_BlitSurface(font, &(SDL_Rect){292,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'r'){SDL_BlitSurface(font, &(SDL_Rect){299,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == 's'){SDL_BlitSurface(font, &(SDL_Rect){304,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 't'){SDL_BlitSurface(font, &(SDL_Rect){310,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == 'u'){SDL_BlitSurface(font, &(SDL_Rect){315,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'v'){SDL_BlitSurface(font, &(SDL_Rect){322,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'w'){SDL_BlitSurface(font, &(SDL_Rect){329,0,8,9}, o, &dr); dr.x += 8+m;}
+        else if(s[i] == 'x'){SDL_BlitSurface(font, &(SDL_Rect){338,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'y'){SDL_BlitSurface(font, &(SDL_Rect){345,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'z'){SDL_BlitSurface(font, &(SDL_Rect){352,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == '0'){SDL_BlitSurface(font, &(SDL_Rect){358,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '1'){SDL_BlitSurface(font, &(SDL_Rect){366,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == '2'){SDL_BlitSurface(font, &(SDL_Rect){372,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '3'){SDL_BlitSurface(font, &(SDL_Rect){379,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '4'){SDL_BlitSurface(font, &(SDL_Rect){386,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '5'){SDL_BlitSurface(font, &(SDL_Rect){393,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '6'){SDL_BlitSurface(font, &(SDL_Rect){400,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '7'){SDL_BlitSurface(font, &(SDL_Rect){407,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '8'){SDL_BlitSurface(font, &(SDL_Rect){414,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '9'){SDL_BlitSurface(font, &(SDL_Rect){421,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == ':'){SDL_BlitSurface(font, &(SDL_Rect){428,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == '.'){SDL_BlitSurface(font, &(SDL_Rect){431,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == '+'){SDL_BlitSurface(font, &(SDL_Rect){435,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == '-'){SDL_BlitSurface(font, &(SDL_Rect){443,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == ' '){dr.x += 2+m;}
+    }
 }
 
 //*************************************
