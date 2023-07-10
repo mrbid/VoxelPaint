@@ -17,7 +17,11 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * **F / Mouse4 Click** = Toggle player fast speed on and off.
 * **1 / Middle Click** = Copys texture of pointed node.
 * **R** = Resets view and position matrix.
+* **F3** = Save. *(Voxel Paint saves automatically when you exit or when you are idle for more than 3 minutes anyway)*
+* **F8** = Load. *(will erase what you have done since the last save)*
 
 Arrow Keys can be used to move the view around.
 
 Your state is automatically saved on exit.
+
+You can customize the 19 block tileset, in your prefPath you will find a `tiles.ppm` image file, edit this file and save it as a ppm with a `P6 272 16 255` header. [Krita](https://krita.org) can edit ppm files.
