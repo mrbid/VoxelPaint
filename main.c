@@ -1636,7 +1636,7 @@ int main(int argc, char** argv)
     printf("E / Left Click = Place node.\n");
     printf("Q / Right Click = Delete node.\n");
     printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
-    printf("1 / Middle Click = Copys texture of pointed node.\n");
+    printf("1 / Middle Click = Clones texture of pointed node.\n");
     printf("R = Resets view and position matrix.\n");
     printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
