@@ -15,8 +15,10 @@
 			<li>E / Left Click = Place node.</li>
 			<li>Q / Right Click = Delete node.</li>
 			<li>F / Mouse4 Click = Toggle player fast speed on and off.</li>
-			<li>1 / Middle Click = Copys texture of pointed node.</li>
+			<li>1 / Middle Click = Clones texture of pointed node.</li>
 			<li>R = Resets view and position matrix.</li>
+			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
+			<li>F8 = Load. (will erase what you have done since the last save)</li>
 		</ul>
 
 		<p>Arrow Keys can be used to move the view around.</p>
