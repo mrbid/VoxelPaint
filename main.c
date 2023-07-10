@@ -609,11 +609,13 @@ void saveState()
         unsigned int strikeout = 0;
         while(fwrite(&g, 1, sizeof(game_state), f) != sizeof(game_state))
         {
-            printf("Writing world.db failed... Trying again.\n");
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] Writing world.db failed... Trying again.\n", tmp);
             strikeout++;
             if(strikeout > 3333)
             {
-                printf("Saving failed.\n");
+                printf("[%s] Saving failed.\n", tmp);
                 break;
             }
         }
@@ -634,11 +636,13 @@ uint loadState()
         unsigned int strikeout = 0;
         while(fread(&g, 1, sizeof(game_state), f) != sizeof(game_state))
         {
-            printf("Read world.db failed... Trying again.\n");
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] Read world.db failed... Trying again.\n", tmp);
             strikeout++;
             if(strikeout > 3333)
             {
-                printf("Loading failed.\n");
+                printf("[%s] Loading failed.\n", tmp);
                 fclose(f);
                 return 0;
             }
@@ -1582,6 +1586,10 @@ int main(int argc, char** argv)
     srand(time(0));
     srandf(time(0));
 
+    // get paths
+    basedir = SDL_GetBasePath();
+    appdir = SDL_GetPrefPath("voxdsp", "voxelpaint");
+
     // print info
     printf("----\n");
     printAttrib(SDL_GL_DOUBLEBUFFER, "GL_DOUBLEBUFFER");
@@ -1632,14 +1640,12 @@ int main(int argc, char** argv)
     printf("R = Resets view and position matrix.\n");
     printf("F3 = Save.\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
-    printf("Arrow Keys can be used to move the view around.\n\n");
-    printf("Your state is automatically saved on exit.\n\n");
-    printf("You can customize the 19 block tileset, in your prefPath you will find a tiles.ppm image file, edit this file and save it as a ppm with a `P6 272 16 255` header.\n");
+    printf("\n* Arrow Keys can be used to move the view around.\n");
+    printf("* Your state is automatically saved on exit.\n");
+    printf("* You can customize the 19 block tileset,\n  in your prefPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
     printf("\n");
 
     // get app dir
-    basedir = SDL_GetBasePath();
-    appdir = SDL_GetPrefPath("voxdsp", "voxelpaint");
     printf("basePath: %s\n", basedir);
     printf("prefPath: %s\n", appdir);
     printf("----\n");
@@ -1661,7 +1667,11 @@ int main(int argc, char** argv)
     {
         fseek(fc, 14, SEEK_SET);
         if(fread(&tiles, sizeof(unsigned char), 13056, fc) != 13056)
-            printf("Reading custom tiles.ppm failed, incorrect file size.\n");
+        {
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] Reading custom tiles.ppm failed, incorrect file size.\n", tmp);
+        }
         fclose(fc);
     }
 
@@ -1767,7 +1777,9 @@ int main(int argc, char** argv)
 #ifdef VERBOSE
         if(t > ft)
         {
-            printf("%u fps, %u voxels\n", fps/3, g.num_voxels);
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] %u fps, %u voxels\n", tmp, fps/3, g.num_voxels);
             fps = 0;
             ft = t+3.f;
         }
