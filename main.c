@@ -56,7 +56,7 @@ const unsigned char icon[] = { // 16, 16, 4
   "\377\377\000\377\377\377\000\377\377\377\000\377\377\377\000\377\377\377\000",
 };
 
-const unsigned char tiles[] = { // 272, 16, 3
+unsigned char tiles[] = { // 272, 16, 3
   "///,,,\060\060\060,,,***\060\060\060\060\060\060\060\060\060\060\060\060\060\060\060\060\060"
   "\060\060\060\060\060\060\060(((,,,,,,HHH;;;<<<???FFFDDDGGG<<<FFFFFFHHHGGGHHHAAA"
   ";;;DDDdddiiippp^^^aaahhhdddeeefff]]]eeeiii___]]]kkk\\\\\\\235\064\064\243\066"
@@ -613,7 +613,7 @@ void saveState()
             strikeout++;
             if(strikeout > 3333)
             {
-                printf("Saving your data totally failed. Outch. :(\n");
+                printf("Saving failed.\n");
                 break;
             }
         }
@@ -638,7 +638,7 @@ uint loadState()
             strikeout++;
             if(strikeout > 3333)
             {
-                printf("Loading your data totally failed. ¯\\_(ツ)_/¯ Maybe it's corrupted? :(\n");
+                printf("Loading failed.\n");
                 fclose(f);
                 return 0;
             }
@@ -1242,6 +1242,20 @@ void main_loop()
                     g.ms = 9.3f;
                     g.st = 10.f;
                 }
+                else if(event.key.keysym.sym == SDLK_F3)
+                {
+                    saveState();
+                    char tmp[16];
+                    timestamp(tmp);
+                    printf("[%s] Saved state.\n", tmp);
+                }
+                else if(event.key.keysym.sym == SDLK_F8)
+                {
+                    loadState();
+                    char tmp[16];
+                    timestamp(tmp);
+                    printf("[%s] Loaded state.\n", tmp);
+                }
 #ifdef VERBOSE
                 else if(event.key.keysym.sym == SDLK_p)
                 {
@@ -1616,6 +1630,8 @@ int main(int argc, char** argv)
     printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
     printf("1 / Middle Click = Copys texture of pointed node.\n");
     printf("R = Resets view and position matrix.\n");
+    printf("F3 = Save.\n");
+    printf("F8 = Load. (will erase what you have done since the last save)\n");
     printf("Arrow Keys can be used to move the view around.\n\n");
     printf("Your state is automatically saved on exit.\n");
     printf("\n");
@@ -1630,10 +1646,25 @@ int main(int argc, char** argv)
 //*************************************
 // bind vertex and index buffers
 //*************************************
+    // load voxel buffers
     esBind(GL_ARRAY_BUFFER, &mdlVoxel.tid, voxel_uvmap, sizeof(voxel_uvmap), GL_STATIC_DRAW);
     esBind(GL_ARRAY_BUFFER, &mdlVoxel.vid, voxel_vertices, sizeof(voxel_vertices), GL_STATIC_DRAW);
     esBind(GL_ARRAY_BUFFER, &mdlVoxel.nid, voxel_normals, sizeof(voxel_normals), GL_STATIC_DRAW);
     esBind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, voxel_indices, sizeof(voxel_indices), GL_STATIC_DRAW);
+
+    // try to read custom tiles
+    char fp[256];
+    sprintf(fp, "%s/tiles.ppm", appdir);
+    FILE* fc = fopen(fp, "rb");
+    if(fc != NULL)
+    {
+        fseek(fc, 14, SEEK_SET);
+        if(fread(&tiles, sizeof(unsigned char), 13056, fc) != 13056)
+            printf("Reading custom tiles.ppm failed, incorrect file size.\n");
+        fclose(fc);
+    }
+
+    // load tiles
     texmap = esLoadTexture(272, 16, tiles, 1);
 
 //*************************************
@@ -1701,6 +1732,18 @@ int main(int argc, char** argv)
         g.ms = 9.3f;
         g.st = 10.f;
         g.pb = (vec){0.f, 0.f, 0.f, -1.f};
+
+        // write ppm of tiles to appdir
+        if(fc == NULL)
+        {
+            FILE* f = fopen(fp, "wb");
+            if(f != NULL)
+            {
+                fprintf(f, "P6 272 16 255 ");
+                fwrite(tiles, sizeof(unsigned char), 13056, f);
+                fclose(f);
+            }
+        }
     }
     else
     {
