@@ -588,7 +588,7 @@ typedef struct
 
     // camera vars
     float sens, xrot, yrot;
-    vec look_dir;       // camera look direction
+    vec look_dir; // camera look direction
 
     // player vars
     vec pp;     // player position
