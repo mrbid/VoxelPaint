@@ -1633,7 +1633,8 @@ int main(int argc, char** argv)
     printf("F3 = Save.\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
     printf("Arrow Keys can be used to move the view around.\n\n");
-    printf("Your state is automatically saved on exit.\n");
+    printf("Your state is automatically saved on exit.\n\n");
+    printf("You can customize the 19 block tileset, in your prefPath you will find a tiles.ppm image file, edit this file and save it as a ppm with a `P6 272 16 255` header.\n");
     printf("\n");
 
     // get app dir
