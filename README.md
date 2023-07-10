@@ -17,7 +17,7 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * **F / Mouse4 Click** = Toggle player fast speed on and off.
 * **1 / Middle Click** = Copys texture of pointed node.
 * **R** = Resets view and position matrix.
-* **F3** = Save. *(Voxel Paint saves automatically when you exit or when you are idle for more than 3 minutes anyway)*
+* **F3** = Save. *(saves automatically on exit or idle for more than 3 minutes)*
 * **F8** = Load. *(will erase what you have done since the last save)*
 
 Arrow Keys can be used to move the view around.
