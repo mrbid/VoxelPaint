@@ -541,7 +541,7 @@ unsigned char tiles[] = { // 272, 16, 3
 // main settings
 //#define SKYBLUE
 //#define VERBOSE
-#include "inc/esAux4.h"
+#include "inc/esVoxel.h"
 
 #define uint GLuint
 #define sint GLint
@@ -660,8 +660,10 @@ uint loadState()
 // render state id's
 GLint projection_id;
 GLint modelview_id;
+GLint view_id;
+GLint voxel_id;
 GLint position_id;
-GLint lightpos_id;
+GLint lightvoxel_id;
 GLint color_id;
 GLint opacity_id;
 GLint normal_id;
@@ -1298,19 +1300,35 @@ void main_loop()
                 if(focus_mouse == 0){break;}
 
                 traceViewPath(0);
-                if(event.wheel.y > 0)
+                if(lray > -1)
                 {
-                    g.st = g.voxels[lray].w + 1.f;
-                    if(g.st > 16.f){g.st = 0.f;}
-                }
-                else if(event.wheel.y < 0)
-                {
-                    g.st = g.voxels[lray].w - 1.f;
-                    if(g.st < 0.f){g.st = 16.f;}
-                }
+                    if(event.wheel.y > 0)
+                    {
+                        g.st = g.voxels[lray].w + 1.f;
+                        if(g.st > 16.f){g.st = 0.f;}
+                    }
+                    else if(event.wheel.y < 0)
+                    {
+                        g.st = g.voxels[lray].w - 1.f;
+                        if(g.st < 0.f){g.st = 16.f;}
+                    }
 
-                if(lray > -1){g.voxels[lray].w = g.st;}
-                idle = t;
+                    g.voxels[lray].w = g.st;
+                    idle = t;
+                }
+                else
+                {
+                    if(event.wheel.y > 0)
+                    {
+                        g.st += 1.f;
+                        if(g.st > 16.f){g.st = 0.f;}
+                    }
+                    else if(event.wheel.y < 0)
+                    {
+                        g.st -= 1.f;
+                        if(g.st < 0.f){g.st = 16.f;}
+                    }
+                }
             }
             break;
 
@@ -1512,35 +1530,26 @@ void main_loop()
 // main render
 //*************************************
 
-    // starting/center voxel
-    glUniform1f(texoffset_id, g.voxels[0].w);
-    glUniformMatrix4fv(modelview_id, 1, GL_FALSE, (float*)&view.m[0][0]);
-    glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
-
     // render voxels
     ipp = g.pp; // inverse player position (setting global 'ipp' here is perfect)
     vInv(&ipp); // <--
-    for(int j = 1; j < g.num_voxels; j++)
+    glUniformMatrix4fv(view_id, 1, GL_FALSE, (float*)&view.m[0][0]);
+    for(int j = 0; j < g.num_voxels; j++)
     {
         if(g.voxels[j].w < 0.f || 
             vDistSq(ipp, g.voxels[j]) >= ddist2 ||
             insideFrustum(g.voxels[j].x, g.voxels[j].y, g.voxels[j].z) == 0){continue;}
 
-        glUniform1f(texoffset_id, g.voxels[j].w);
-        mIdent(&model);
-        mSetPos(&model, g.voxels[j]);
-        mMul(&modelview, &model, &view);
-        glUniformMatrix4fv(modelview_id, 1, GL_FALSE, (float*)&modelview.m[0][0]);
+        glUniform4f(voxel_id, g.voxels[j].x, g.voxels[j].y, g.voxels[j].z, g.voxels[j].w);
         glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
     }
 
-    // crosshair voxel
-    mIdent(&model);
-    mSetPos(&model, (vec){0.f, 0.f, -0.1f});
-    mScale(&model, 0.0006f, 0.0006f, 0.0006f);
-    glUniform1f(texoffset_id, 6.f);
-    glUniformMatrix4fv(modelview_id, 1, GL_FALSE, (float*)&model.m[0][0]);
+    // crosshair
+    const float nx = ipp.x+(g.look_dir.x*130.f), ny = ipp.y+(g.look_dir.y*130.f), nz = ipp.z+(g.look_dir.z*130.f);
+    glDisable(GL_DEPTH_TEST);
+    glUniform4f(voxel_id, nx, ny, nz, g.st);
     glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
+    glEnable(GL_DEPTH_TEST);
 
 //*************************************
 // swap buffers / display render
@@ -1686,7 +1695,7 @@ int main(int argc, char** argv)
 //*************************************
 // compile & link shader program
 //*************************************
-    makeLambertT(); // textured lambertian
+    makeVoxel();
 
 //*************************************
 // configure render options
@@ -1700,10 +1709,8 @@ int main(int argc, char** argv)
     glClearColor(0.f, 0.f, 0.f, 0.0f);
 #endif
 
-    shadeLambertT(&position_id, &projection_id, &modelview_id, &lightpos_id, &normal_id, &texcoord_id, &texoffset_id, &sampler_id, &opacity_id);
+    shadeVoxel(&position_id, &projection_id, &view_id, &voxel_id, &normal_id, &texcoord_id, &sampler_id);
     glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
-    glUniform3f(lightpos_id, 0.f, 0.f, 0.f);
-    glUniform1f(opacity_id, 1.f);
 
     glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.vid);
     glVertexAttribPointer(position_id, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -1727,7 +1734,7 @@ int main(int argc, char** argv)
 // execute update / render loop
 //*************************************
 
-    // default voxels
+    // center voxel
     memset(g.voxels, 0x00, sizeof(vec)*max_voxels);
     g.voxels[0] = (vec){0.f, 0.f, 0.f, 13.f};
     g.num_voxels = 1;
