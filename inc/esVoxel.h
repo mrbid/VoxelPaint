@@ -276,7 +276,7 @@ const GLchar* f0 =
         "void main()\n"
         "{\n"
             "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
-            "gl_FragColor = vec4((tcol.xyz * 0.42) + lambertian*tcol.xyz, 1.f);\n"
+            "gl_FragColor = vec4((tcol.xyz * 0.64) + lambertian*tcol.xyz, 1.f);\n"
         "}\n";
 
 #else
@@ -320,7 +320,7 @@ const GLchar* f0 =
         "void main()\n"
         "{\n"
             "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
-            "vec3 ambientColor = tcol.xyz * 0.42;\n"
+            "vec3 ambientColor = tcol.xyz * 0.64;\n"
             "vec3 lightDir = normalize(-vertPos);\n"
             "float lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0);\n"
             //"gl_FragColor = vec4(ambientColor + lambertian*tcol.xyz, 1.0);\n"
