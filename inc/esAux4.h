@@ -6,9 +6,6 @@
 
     A pretty good color converter: https://www.easyrgb.com/en/convert.php
 
-    Lambertian fragment shaders make a difference, but only if you normalise the
-    vertNorm in the fragment shader. Most of the time you won't notice the difference.
-
     v4.1 - Added support for textured voxels. (shadeLambertT)
 
     Requires:
@@ -20,7 +17,7 @@
 #ifndef AUX_H
 #define AUX_H
 
-//#define VERTEX_SHADE // uncomment for vertex shaded, default is pixel shaded
+#define VERTEX_SHADE // uncomment for vertex shaded, default is pixel shaded
 
 #include "vec.h"
 #include "mat.h"
@@ -427,21 +424,26 @@ const GLchar* v14 =
     "uniform mat4 projection;\n"
     "uniform float opacity;\n"
     "uniform vec3 lightpos;\n"
+    "uniform float texoffset;\n"
     "attribute vec4 position;\n"
     "attribute vec3 normal;\n"
     "attribute vec2 texcoord;\n"
+    "varying vec3 vertPos;\n"
+    "varying vec3 vertNorm;\n"
     "varying float lambertian;\n"
     "varying float vertOpa;\n"
     "varying vec2 vtc;\n"
+    "varying float vto;\n"
     "void main()\n"
     "{\n"
         "vtc = texcoord;\n"
         "vec4 vertPos4 = modelview * position;\n"
-        "vec3 vertPos = vertPos4.xyz / vertPos4.w;\n"
-        "vec3 vertNorm = vec3(modelview * vec4(normal, 0.0));\n"
+        "vertPos = vertPos4.xyz / vertPos4.w;\n"
+        "vertNorm = vec3(modelview * vec4(normal, 0.0));\n"
         "vec3 lightDir = normalize(lightpos - vertPos);\n"
-        "lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0);\n"
+        "lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0) * clamp(1.0 - (length(vertPos)*0.002), 0.0, 1.0);\n"
         "vertOpa = opacity;\n"
+        "vto = texoffset;\n"
         "gl_Position = projection * vertPos4;\n"
     "}\n";
 
@@ -451,11 +453,12 @@ const GLchar* f14 =
     "varying float lambertian;\n"
     "varying float vertOpa;\n"
     "varying vec2 vtc;\n"
+    "varying float vto;\n"
     "uniform sampler2D tex;\n"
     "void main()\n"
     "{\n"
-        "vec4 tcol = texture2D(tex, vtc);\n"
-        "gl_FragColor = vec4((tcol.xyz * 0.148) + lambertian*tcol.xyz, vertOpa);\n"
+        "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
+        "gl_FragColor = vec4((tcol.xyz * 0.42) + lambertian*tcol.xyz, vertOpa);\n"
     "}\n";
 
 #else
