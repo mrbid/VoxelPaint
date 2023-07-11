@@ -1547,9 +1547,9 @@ void main_loop()
     // crosshair
     mGetViewZ(&g.look_dir, view);
     const float nx = ipp.x+(g.look_dir.x*130.f), ny = ipp.y+(g.look_dir.y*130.f), nz = ipp.z+(g.look_dir.z*130.f);
-    glDisable(GL_DEPTH_TEST);
     glUniform4f(voxel_id, nx, ny, nz, g.st);
-    glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
+    glDisable(GL_DEPTH_TEST);
+        glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
     glEnable(GL_DEPTH_TEST);
 
 //*************************************
