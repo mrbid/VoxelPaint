@@ -598,6 +598,7 @@ typedef struct
 }
 game_state;
 game_state g; // 64mb
+float cms = 18.6f; // custom move speed
 
 void saveState()
 {
@@ -1250,10 +1251,35 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_f) // change movement speeds
                 {
-                    if(g.ms == 9.3f)
-                        g.ms = 18.6f;
-                    else
+                    if(g.ms > 9.3f)
                         g.ms = 9.3f;
+                    else
+                        g.ms = cms;
+                }
+                else if(event.key.keysym.sym == SDLK_4) // change movement speeds
+                {
+                    g.ms = 37.2f;
+                    cms = g.ms;
+                }
+                else if(event.key.keysym.sym == SDLK_5) // change movement speeds
+                {
+                    g.ms = 74.4f;
+                    cms = g.ms;
+                }
+                else if(event.key.keysym.sym == SDLK_6) // change movement speeds
+                {
+                    g.ms = 148.8f;
+                    cms = g.ms;
+                }
+                else if(event.key.keysym.sym == SDLK_7) // change movement speeds
+                {
+                    g.ms = 297.6f;
+                    cms = g.ms;
+                }
+                else if(event.key.keysym.sym == SDLK_0) // change movement speeds
+                {
+                    g.ms = 18.6f;
+                    cms = g.ms;
                 }
                 else if(event.key.keysym.sym == SDLK_r)
                 {
@@ -1659,6 +1685,7 @@ int main(int argc, char** argv)
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
     printf("L-SHIFT + SPACE = Move up and down relative Z.\n");
     printf("2-3 / Mouse Scroll Wheel = Change texture of pointed node.\n");
+    printf("4-7 = Change move speed, reset back to original x2 speed with 0.\n");
     printf("E / Left Click = Place node.\n");
     printf("Q / Right Click = Delete node.\n");
     printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
@@ -1786,6 +1813,9 @@ int main(int argc, char** argv)
         timestamp(tmp);
         printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
     }
+
+    // if custom speed set, set that as the new cms
+    if(g.ms > 9.3f){cms = g.ms;}
 
     // argv mouse sensitivity
     if(argc == 2){g.sens = atof(argv[1]);}
