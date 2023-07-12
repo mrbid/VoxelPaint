@@ -690,7 +690,7 @@ const GLsizeiptr voxel_numind = 36;
 const GLsizeiptr voxel_numvert = 25;
 ESModel mdlVoxel;
 
-// hit_vec will be untouched by this if there's no collision (by hax)
+// hit_vec will be untouched by this if there's no collision (function by hax/test_user)
 #define RAY_DEPTH 70
 int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 {
@@ -1210,16 +1210,32 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_2) // - change selected node
                 {
                     traceViewPath(0);
-                    g.st = g.voxels[lray].w - 1.f;
-                    if(g.st < 0.f){g.st = 16.f;}
-                    if(lray > -1){g.voxels[lray].w = g.st;}
+                    if(lray > -1)
+                    {
+                        g.st = g.voxels[lray].w - 1.f;
+                        if(g.st < 0.f){g.st = 16.f;}
+                        g.voxels[lray].w = g.st;
+                    }
+                    else
+                    {
+                        g.st -= 1.f;
+                        if(g.st < 0.f){g.st = 16.f;}
+                    }
                 }
                 else if(event.key.keysym.sym == SDLK_3) // + change selected node
                 {
                     traceViewPath(0);
-                    g.st = g.voxels[lray].w + 1.f;
-                    if(g.st > 16.f){g.st = 0.f;}
-                    if(lray > -1){g.voxels[lray].w = g.st;}
+                    if(lray > -1)
+                    {
+                        g.st = g.voxels[lray].w + 1.f;
+                        if(g.st > 16.f){g.st = 0.f;}
+                        g.voxels[lray].w = g.st;
+                    }
+                    else
+                    {
+                        g.st += 1.f;
+                        if(g.st > 16.f){g.st = 0.f;}
+                    }
                 }
                 else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
                 {
