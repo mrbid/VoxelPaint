@@ -1431,10 +1431,9 @@ void main_loop()
                 }
                 else if(event.button.button == SDL_BUTTON_X1) // change movement speeds
                 {
-                    if(g.ms == 9.3f)
-                        g.ms = 18.6f;
-                    else
-                        g.ms = 9.3f;
+                    fks = 1 - fks;
+                    if(fks){g.ms = g.cms;}
+                       else{g.ms = g.lms;}
                 }
                 idle = t;
             }
