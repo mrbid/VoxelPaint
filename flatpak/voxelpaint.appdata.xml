@@ -11,12 +11,13 @@
 		<ul>
 			<li>W,A,S,D = Move around based on relative orientation to X and Y.</li>
 			<li>L-SHIFT + SPACE = Move up and down relative Z.</li>
-			<li>2-3 / Mouse Scroll Wheel = Change texture of pointed node.</li>
-			<li>E / Left Click = Place node.</li>
-			<li>Q / Right Click = Delete node.</li>
+			<li>Left Click / R-SHIFT = Place node.</li>
+			<li>Right Click / R-CTRL = Delete node.</li>
 			<li>F / Mouse4 Click = Toggle player fast speed on and off.</li>
-			<li>1 / Middle Click = Clones texture of pointed node.</li>
-			<li>R = Resets view and position matrix.</li>
+			<li>1-7 = Change move speed for selected fast state.</li>
+			<li>R / Middle Click = Clone texture of pointed node.</li>
+			<li>Q-E / Mouse Scroll Wheel = Change texture of pointed node.</li>
+			<li>T = Resets view and position matrix.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
 		</ul>
