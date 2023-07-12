@@ -595,10 +595,13 @@ typedef struct
     float ms;   // player move speed
     vec pb;     // place block pos
     float st;   // selected texture
+
+    float cms;  // custom move speed (high)
+    float lms;  // custom move speed (low)
 }
 game_state;
 game_state g; // 64mb
-float cms = 18.6f; // custom move speed
+uint fks = 0;
 
 void saveState()
 {
@@ -634,19 +637,11 @@ uint loadState()
     FILE* f = fopen(file, "rb");
     if(f != NULL)
     {
-        unsigned int strikeout = 0;
         while(fread(&g, 1, sizeof(game_state), f) != sizeof(game_state))
         {
             char tmp[16];
             timestamp(tmp);
-            printf("[%s] Read world.db failed... Trying again.\n", tmp);
-            strikeout++;
-            if(strikeout > 3333)
-            {
-                printf("[%s] Loading failed.\n", tmp);
-                fclose(f);
-                return 0;
-            }
+            printf("[%s] world.db was of an unexpected size.\n", tmp);
         }
         fclose(f);
         return 1;
@@ -1192,23 +1187,23 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_a){ks[1] = 1;}
                 else if(event.key.keysym.sym == SDLK_s){ks[2] = 1;}
                 else if(event.key.keysym.sym == SDLK_d){ks[3] = 1;}
-                else if(event.key.keysym.sym == SDLK_LSHIFT){ks[4] = 1;} // move down Z
+                else if(event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_LCTRL){ks[4] = 1;} // move down Z
                 else if(event.key.keysym.sym == SDLK_LEFT){ks[5] = 1;}
                 else if(event.key.keysym.sym == SDLK_RIGHT){ks[6] = 1;}
                 else if(event.key.keysym.sym == SDLK_UP){ks[7] = 1;}
                 else if(event.key.keysym.sym == SDLK_DOWN){ks[8] = 1;}
-                else if(event.key.keysym.sym == SDLK_SPACE || event.key.keysym.sym == SDLK_LCTRL){ks[9] = 1;} // move up Z
+                else if(event.key.keysym.sym == SDLK_SPACE){ks[9] = 1;} // move up Z
                 else if(event.key.keysym.sym == SDLK_ESCAPE) // unlock mouse focus
                 {
                     focus_mouse = 0;
                     SDL_ShowCursor(1);
                 }
-                else if(event.key.keysym.sym == SDLK_1)
+                else if(event.key.keysym.sym == SDLK_r)
                 {
                     traceViewPath(0);
                     if(lray > -1){g.st = g.voxels[lray].w;}
                 }
-                else if(event.key.keysym.sym == SDLK_2) // - change selected node
+                else if(event.key.keysym.sym == SDLK_q) // - change selected node
                 {
                     traceViewPath(0);
                     if(lray > -1)
@@ -1223,7 +1218,7 @@ void main_loop()
                         if(g.st < 0.f){g.st = 16.f;}
                     }
                 }
-                else if(event.key.keysym.sym == SDLK_3) // + change selected node
+                else if(event.key.keysym.sym == SDLK_e) // + change selected node
                 {
                     traceViewPath(0);
                     if(lray > -1)
@@ -1238,50 +1233,59 @@ void main_loop()
                         if(g.st > 16.f){g.st = 0.f;}
                     }
                 }
-                else if(event.key.keysym.sym == SDLK_q) // remove pointed voxel
+                else if(event.key.keysym.sym == SDLK_RCTRL) // remove pointed voxel
                 {
                     dtt = t+0.3f;
                     traceViewPath(0);
                     if(lray > 0){g.voxels[lray].w = -1.f;}
                 }
-                else if(event.key.keysym.sym == SDLK_e) // place a voxel
+                else if(event.key.keysym.sym == SDLK_RSHIFT) // place a voxel
                 {
                     traceViewPath(1);
                     placeVoxel(0.3f);
                 }
                 else if(event.key.keysym.sym == SDLK_f) // change movement speeds
                 {
-                    if(g.ms > 9.3f)
-                        g.ms = 9.3f;
-                    else
-                        g.ms = cms;
+                    fks = 1 - fks;
+                    if(fks){g.ms = g.cms;}
+                       else{g.ms = g.lms;}
+                }
+                else if(event.key.keysym.sym == SDLK_1) // change movement speeds
+                {
+                    g.ms = 9.3f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
+                }
+                else if(event.key.keysym.sym == SDLK_2) // change movement speeds
+                {
+                    g.ms = 18.6f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
+                }
+                else if(event.key.keysym.sym == SDLK_3) // change movement speeds
+                {
+                    g.ms = 37.2f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
                 }
                 else if(event.key.keysym.sym == SDLK_4) // change movement speeds
                 {
-                    g.ms = 37.2f;
-                    cms = g.ms;
+                    g.ms = 74.4f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
                 }
                 else if(event.key.keysym.sym == SDLK_5) // change movement speeds
                 {
-                    g.ms = 74.4f;
-                    cms = g.ms;
+                    g.ms = 148.8f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
                 }
                 else if(event.key.keysym.sym == SDLK_6) // change movement speeds
                 {
-                    g.ms = 148.8f;
-                    cms = g.ms;
+                    g.ms = 297.6f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
                 }
                 else if(event.key.keysym.sym == SDLK_7) // change movement speeds
                 {
-                    g.ms = 297.6f;
-                    cms = g.ms;
+                    g.ms = 595.2f;
+                    if(fks){g.cms=g.ms;}else{g.lms=g.ms;}
                 }
-                else if(event.key.keysym.sym == SDLK_0) // change movement speeds
-                {
-                    g.ms = 18.6f;
-                    cms = g.ms;
-                }
-                else if(event.key.keysym.sym == SDLK_r)
+                else if(event.key.keysym.sym == SDLK_t)
                 {
                     g.sens = 0.003f;
                     g.xrot = 0.f;
@@ -1325,14 +1329,14 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_a){ks[1] = 0;}
                 else if(event.key.keysym.sym == SDLK_s){ks[2] = 0;}
                 else if(event.key.keysym.sym == SDLK_d){ks[3] = 0;}
-                else if(event.key.keysym.sym == SDLK_LSHIFT){ks[4] = 0;}
+                else if(event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_LCTRL){ks[4] = 0;}
                 else if(event.key.keysym.sym == SDLK_LEFT){ks[5] = 0;}
                 else if(event.key.keysym.sym == SDLK_RIGHT){ks[6] = 0;}
                 else if(event.key.keysym.sym == SDLK_UP){ks[7] = 0;}
                 else if(event.key.keysym.sym == SDLK_DOWN){ks[8] = 0;}
-                else if(event.key.keysym.sym == SDLK_SPACE || event.key.keysym.sym == SDLK_LCTRL){ks[9] = 0;}
-                else if(event.key.keysym.sym == SDLK_e){ptt = 0.f;}
-                else if(event.key.keysym.sym == SDLK_q){dtt = 0.f;}
+                else if(event.key.keysym.sym == SDLK_SPACE){ks[9] = 0;}
+                else if(event.key.keysym.sym == SDLK_RSHIFT){ptt = 0.f;}
+                else if(event.key.keysym.sym == SDLK_RCTRL){dtt = 0.f;}
                 idle = t;
             }
             break;
@@ -1684,13 +1688,13 @@ int main(int argc, char** argv)
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
     printf("L-SHIFT + SPACE = Move up and down relative Z.\n");
-    printf("2-3 / Mouse Scroll Wheel = Change texture of pointed node.\n");
-    printf("4-7 = Change move speed, reset back to original x2 speed with 0.\n");
-    printf("E / Left Click = Place node.\n");
-    printf("Q / Right Click = Delete node.\n");
+    printf("Left Click / R-SHIFT = Place node.\n");
+    printf("Right Click / R-CTRL = Delete node.\n");
     printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
-    printf("1 / Middle Click = Clones texture of pointed node.\n");
-    printf("R = Resets view and position matrix.\n");
+    printf("1-7 = Change move speed for selected fast state.\n");
+    printf("R / Middle Click = Clone texture of pointed node.\n");
+    printf("Q-E / Mouse Scroll Wheel = Change texture of pointed node.\n");
+    printf("T = Resets view and position matrix.\n");
     printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
@@ -1794,6 +1798,8 @@ int main(int argc, char** argv)
         g.ms = 9.3f;
         g.st = 10.f;
         g.pb = (vec){0.f, 0.f, 0.f, -1.f};
+        g.lms = g.ms;
+        g.cms = g.ms*2;
 
         // write ppm of tiles to appdir
         if(fc == NULL)
@@ -1813,9 +1819,6 @@ int main(int argc, char** argv)
         timestamp(tmp);
         printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
     }
-
-    // if custom speed set, set that as the new cms
-    if(g.ms > 9.3f){cms = g.ms;}
 
     // argv mouse sensitivity
     if(argc == 2){g.sens = atof(argv[1]);}
