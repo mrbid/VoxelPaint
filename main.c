@@ -642,6 +642,8 @@ uint loadState()
             char tmp[16];
             timestamp(tmp);
             printf("[%s] world.db was of an unexpected size.\n", tmp);
+            fclose(f);
+            return 1;
         }
         fclose(f);
         fks = (g.ms == g.cms); // update F-Key State
