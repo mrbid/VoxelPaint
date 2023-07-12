@@ -9,16 +9,17 @@ https://snapcraft.io/voxelpaint
 ## Info
 Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 
-* **W,A,S,D** = Move around based on relative orientation to X and Y.
-* **L-SHIFT + SPACE** = Move up and down relative Z.
-* **2-3 / Mouse Scroll Wheel** = Change texture of pointed node.
-* **E / Left Click** = Place node.
-* **Q / Right Click** = Delete node.
-* **F / Mouse4 Click** = Toggle player fast speed on and off.
-* **1 / Middle Click** = Clones texture of pointed node.
-* **R** = Resets view and position matrix.
-* **F3** = Save. *(saves automatically on exit or idle for more than 3 minutes)*
-* **F8** = Load. *(will erase what you have done since the last save)*
+* W,A,S,D = Move around based on relative orientation to X and Y.
+* L-SHIFT + SPACE = Move up and down relative Z.
+* Left Click / R-SHIFT = Place node.
+* Right Click / R-CTRL = Delete node.
+* F / Mouse4 Click = Toggle player fast speed on and off.
+* 1-7 = Change move speed for selected fast state.
+* R / Middle Click = Clone texture of pointed node.
+* Q-E / Mouse Scroll Wheel = Change texture of pointed node.
+* T = Resets view and position matrix.
+* F3 = Save. (auto saves on exit or idle for more than 3 minutes)
+* F8 = Load. (will erase what you have done since the last save)
 
 Arrow Keys can be used to move the view around.
 
