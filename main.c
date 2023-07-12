@@ -637,13 +637,11 @@ uint loadState()
     FILE* f = fopen(file, "rb");
     if(f != NULL)
     {
-        while(fread(&g, 1, sizeof(game_state), f) != sizeof(game_state))
+        if(fread(&g, 1, sizeof(game_state), f) != sizeof(game_state))
         {
             char tmp[16];
             timestamp(tmp);
             printf("[%s] world.db was of an unexpected size.\n", tmp);
-            fclose(f);
-            return 1;
         }
         fclose(f);
         fks = (g.ms == g.cms); // update F-Key State
