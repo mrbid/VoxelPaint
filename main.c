@@ -540,7 +540,7 @@ unsigned char tiles[] = { // 272, 16, 3
 
 // main settings
 //#define SKYBLUE
-//#define VERBOSE
+#define VERBOSE
 #include "inc/esVoxel.h"
 
 #define uint GLuint
@@ -598,6 +598,7 @@ typedef struct
 
     float cms;  // custom move speed (high)
     float lms;  // custom move speed (low)
+    uint grav;  // gravity on/off toggle
 }
 game_state;
 game_state g; // 64mb
@@ -1245,6 +1246,10 @@ void main_loop()
                     traceViewPath(1);
                     placeVoxel(0.3f);
                 }
+                else if(event.key.keysym.sym == SDLK_g) // change movement speeds
+                {
+                    g.grav = 1 - g.grav;
+                }
                 else if(event.key.keysym.sym == SDLK_f) // change movement speeds
                 {
                     fks = 1 - fks;
@@ -1472,6 +1477,12 @@ void main_loop()
     {
         mGetViewZ(&g.look_dir, view);
 
+        if(g.grav == 1)
+        {
+            g.look_dir.z = 0.f;
+            vNorm(&g.look_dir);
+        }
+
         if(ptt != 0.f && t > ptt) // place trigger
         {
             traceViewPath(1);
@@ -1541,6 +1552,38 @@ void main_loop()
             g.yrot += 1.f*dt;
         else if(ks[8] == 1) // DOWN
             g.yrot -= 1.f*dt;
+
+        // player gravity
+        if(g.grav == 1)
+        {
+            static uint falling = 0;
+
+            vec vipp = g.pp; // inverse player position (setting global 'ipp' here is perfect)
+            vInv(&vipp); // <--
+            vipp.x = roundf(vipp.x);
+            vipp.y = roundf(vipp.y);
+            vipp.z = roundf(vipp.z); // now its voxel aligned
+
+            falling = 1;
+            for(int j = 0; j < g.num_voxels; j++)
+            {
+                if(g.voxels[j].x == vipp.x && g.voxels[j].y == vipp.y && g.voxels[j].z == vipp.z-1.f)
+                {
+                    falling = 0;
+                    break;
+                }
+
+                if(g.voxels[j].x == vipp.x && g.voxels[j].y == vipp.y && g.voxels[j].z == vipp.z-2.f)
+                {
+                    falling = 2;
+                    break;
+                }
+            }
+            if(falling == 1)        {g.pp.z += (g.ms*0.5f)*dt;}
+            else if(falling == 0)   {g.pp.z -= g.ms*dt;}
+
+            mGetViewZ(&g.look_dir, view);
+        }
 
     //*************************************
     // camera/mouse control
@@ -1695,6 +1738,7 @@ int main(int argc, char** argv)
     printf("R / Middle Click = Clone texture of pointed node.\n");
     printf("Q-E / Mouse Scroll Wheel = Change texture of pointed node.\n");
     printf("T = Resets view and position matrix.\n");
+    printf("G = Gravity on/off.\n");
     printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
@@ -1800,6 +1844,7 @@ int main(int argc, char** argv)
         g.pb = (vec){0.f, 0.f, 0.f, -1.f};
         g.lms = g.ms;
         g.cms = g.ms*2.f;
+        g.grav = 0;
 
         // write ppm of tiles to appdir
         if(fc == NULL)
