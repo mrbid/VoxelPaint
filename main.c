@@ -540,7 +540,7 @@ unsigned char tiles[] = { // 272, 16, 3
 
 // main settings
 //#define SKYBLUE
-#define VERBOSE
+//#define VERBOSE
 #include "inc/esVoxel.h"
 
 #define uint GLuint
