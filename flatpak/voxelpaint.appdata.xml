@@ -18,6 +18,7 @@
 			<li>R / Middle Click = Clone texture of pointed node.</li>
 			<li>Q-E / Mouse Scroll Wheel = Change texture of pointed node.</li>
 			<li>T = Resets view and position matrix.</li>
+			<li>G = Gravity on/off.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
 		</ul>
