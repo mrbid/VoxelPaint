@@ -10,15 +10,15 @@
 
 		<ul>
 			<li>W,A,S,D = Move around based on relative orientation to X and Y.</li>
-			<li>L-SHIFT + SPACE = Move up and down relative Z.</li>
+			<li>SPACE + L-SHIFT = Move up and down relative Z.</li>
 			<li>Left Click / R-SHIFT = Place node.</li>
 			<li>Right Click / R-CTRL = Delete node.</li>
-			<li>F / Mouse4 Click = Toggle player fast speed on and off.</li>
+			<li>E / F / Mouse4 = Toggle player fast speed on and off.</li>
 			<li>1-7 = Change move speed for selected fast state.</li>
-			<li>R / Middle Click = Clone texture of pointed node.</li>
-			<li>Q-E / Mouse Scroll Wheel = Change texture of pointed node.</li>
+			<li>Q / Middle Click = Clone texture of pointed node.</li>
+			<li>Mouse Scroll / Slash + Quote / X + C = Change texture of pointed node.</li>
 			<li>T = Resets view and position matrix.</li>
-			<li>G = Gravity on/off.</li>
+			<li>R / G = Gravity on/off.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
 		</ul>
@@ -31,7 +31,7 @@
 	</screenshots>
 	<url type="homepage">https://dashboard.snapcraft.io/site_media/appmedia/2023/07/Screenshot_2023-07-07_01-56-44_oXveCB3.png</url>
 	<releases>
-		<release version="1.5" date="2023-07-10" />
+		<release version="1.6" date="2023-07-13" />
 	</releases>
 	<content_rating type="oars-1.0" />
 </application>
