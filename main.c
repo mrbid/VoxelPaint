@@ -1200,12 +1200,12 @@ void main_loop()
                     focus_mouse = 0;
                     SDL_ShowCursor(1);
                 }
-                else if(event.key.keysym.sym == SDLK_r)
+                else if(event.key.keysym.sym == SDLK_q) // clone pointed voxel texture
                 {
                     traceViewPath(0);
                     if(lray > -1){g.st = g.voxels[lray].w;}
                 }
-                else if(event.key.keysym.sym == SDLK_q) // - change selected node
+                else if(event.key.keysym.sym == SDLK_SLASH || event.key.keysym.sym == SDLK_x) // - change selected node
                 {
                     traceViewPath(0);
                     if(lray > -1)
@@ -1220,7 +1220,7 @@ void main_loop()
                         if(g.st < 0.f){g.st = 16.f;}
                     }
                 }
-                else if(event.key.keysym.sym == SDLK_e) // + change selected node
+                else if(event.key.keysym.sym == SDLK_QUOTE || event.key.keysym.sym == SDLK_c) // + change selected node
                 {
                     traceViewPath(0);
                     if(lray > -1)
@@ -1246,11 +1246,11 @@ void main_loop()
                     traceViewPath(1);
                     placeVoxel(0.3f);
                 }
-                else if(event.key.keysym.sym == SDLK_g) // change movement speeds
+                else if(event.key.keysym.sym == SDLK_r || event.key.keysym.sym == SDLK_g) // gravity toggle
                 {
                     g.grav = 1 - g.grav;
                 }
-                else if(event.key.keysym.sym == SDLK_f) // change movement speeds
+                else if(event.key.keysym.sym == SDLK_e || event.key.keysym.sym == SDLK_f) // change movement speeds
                 {
                     fks = 1 - fks;
                     if(fks){g.ms = g.cms;}
@@ -1562,7 +1562,7 @@ void main_loop()
             vInv(&vipp); // <--
             vipp.x = roundf(vipp.x);
             vipp.y = roundf(vipp.y);
-            vipp.z = roundf(vipp.z); // now its voxel aligned
+            vipp.z = roundf(vipp.z); // now vipp is voxel aligned
 
             falling = 1;
             for(int j = 0; j < g.num_voxels; j++)
@@ -1576,6 +1576,15 @@ void main_loop()
                 if(g.voxels[j].x == vipp.x && g.voxels[j].y == vipp.y && g.voxels[j].z == vipp.z-2.f)
                 {
                     falling = 2;
+                    break;
+                }
+            }
+            // this extra loop makes you auto climb ALL nodes 
+            for(int j = 0; j < g.num_voxels; j++)
+            {
+                if(g.voxels[j].x == vipp.x && g.voxels[j].y == vipp.y && g.voxels[j].z == vipp.z-1.f)
+                {
+                    falling = 0;
                     break;
                 }
             }
@@ -1730,15 +1739,15 @@ int main(int argc, char** argv)
     printf("James William Fletcher (github.com/mrbid)\n\n");
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
-    printf("L-SHIFT + SPACE = Move up and down relative Z.\n");
+    printf("SPACE + L-SHIFT = Move up and down relative Z.\n");
     printf("Left Click / R-SHIFT = Place node.\n");
     printf("Right Click / R-CTRL = Delete node.\n");
-    printf("F / Mouse4 Click = Toggle player fast speed on and off.\n");
+    printf("E / F / Mouse4 = Toggle player fast speed on and off.\n");
     printf("1-7 = Change move speed for selected fast state.\n");
-    printf("R / Middle Click = Clone texture of pointed node.\n");
-    printf("Q-E / Mouse Scroll Wheel = Change texture of pointed node.\n");
+    printf("Q / Middle Click = Clone texture of pointed node.\n");
+    printf("Mouse Scroll / Slash + Quote / X + C = Change texture of pointed node.\n");
     printf("T = Resets view and position matrix.\n");
-    printf("G = Gravity on/off.\n");
+    printf("R / G = Gravity on/off.\n");
     printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
