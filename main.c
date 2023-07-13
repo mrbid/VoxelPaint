@@ -1799,7 +1799,7 @@ int main(int argc, char** argv)
         g.st = 10.f;
         g.pb = (vec){0.f, 0.f, 0.f, -1.f};
         g.lms = g.ms;
-        g.cms = g.ms*2;
+        g.cms = g.ms*2.f;
 
         // write ppm of tiles to appdir
         if(fc == NULL)
