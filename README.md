@@ -18,6 +18,7 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * R / Middle Click = Clone texture of pointed node.
 * Q-E / Mouse Scroll Wheel = Change texture of pointed node.
 * T = Resets view and position matrix.
+* G = Gravity on/off.
 * F3 = Save. (auto saves on exit or idle for more than 3 minutes)
 * F8 = Load. (will erase what you have done since the last save)
 
