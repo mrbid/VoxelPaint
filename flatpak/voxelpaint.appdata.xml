@@ -21,6 +21,7 @@
 			<li>R / G = Gravity on/off.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
+			<li>F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.</li>
 		</ul>
 
 		<p>Arrow Keys can be used to move the view around.</p>
