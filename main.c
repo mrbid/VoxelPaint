@@ -1346,14 +1346,16 @@ void main_loop()
                         char cmd[512];
                         sprintf(cmd, "%s/Documents", getenv("HOME"));
                         mkdir(cmd, 0755);
-                        sprintf(cmd, "zip -jq9 %s/Documents/voxelpaint_%s.zip %s/world.db %s/tiles.ppm", getenv("HOME"), tmp, appdir, appdir);
+                        sprintf(cmd, "%s/Documents/VoxelPaint_exports", getenv("HOME"));
+                        mkdir(cmd, 0755);
+                        sprintf(cmd, "zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir);
                         if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
                     }
                     else
                     {
                         char tmp2[16];
                         timestamp(tmp2);
-                        printf("[%s] Exported data to: %s/Documents/voxelpaint_%s.zip\n", tmp2, getenv("HOME"), tmp);
+                        printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
                     }
                 }
 #endif
@@ -1780,6 +1782,10 @@ int main(int argc, char** argv)
     printf("Compiled against SDL version %u.%u.%u.\n", compiled.major, compiled.minor, compiled.patch);
     printf("Linked against SDL version %u.%u.%u.\n", linked.major, linked.minor, linked.patch);
     printf("----\n");
+    printf("currentPath: %s\n", basedir);
+    printf("dataPath:    %s\n", appdir);
+    printf("exportPath:  %s/Documents/VoxelPaint_exports/\n", getenv("HOME"));
+    printf("----\n");
     printf(">>> Voxel Paint <<<\n\n");
     printf("James William Fletcher (github.com/mrbid)\n\n");
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
@@ -1800,12 +1806,7 @@ int main(int argc, char** argv)
 #endif
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
-    printf("* You can customize the 17 block tileset,\n  in your prefPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
-    printf("\n");
-
-    // get app dir
-    printf("basePath: %s\n", basedir);
-    printf("prefPath: %s\n", appdir);
+    printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
     printf("----\n");
 
 //*************************************
