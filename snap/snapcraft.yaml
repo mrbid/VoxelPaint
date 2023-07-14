@@ -22,6 +22,7 @@ description: |
   Arrow Keys can be used to move the view around.
   
   Your state is automatically saved on exit.
+  
 grade: stable
 confinement: strict
 
