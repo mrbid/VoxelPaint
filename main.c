@@ -538,6 +538,12 @@ unsigned char tiles[] = { // 272, 16, 3
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
 
+#ifdef __linux__
+    #include <unistd.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+#endif
+
 // main settings
 //#define SKYBLUE
 //#define VERBOSE
@@ -603,6 +609,26 @@ typedef struct
 game_state;
 game_state g; // 64mb
 uint fks = 0;
+
+void defaultState(const uint type)
+{
+    g.sens = 0.003f;
+    g.xrot = 0.f;
+    g.yrot = 1.5f;
+    g.pp = (vec){0.f, 4.f, 0.f};
+    if(type == 0)
+    {
+        g.ms = 9.3f;
+    }
+    g.st = 10.f;
+    g.pb = (vec){0.f, 0.f, 0.f, -1.f};
+    if(type == 0)
+    {
+        g.lms = g.ms;
+        g.cms = g.ms*2.f;
+    }
+    g.grav = 0;
+}
 
 void saveState()
 {
@@ -1293,12 +1319,7 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_t)
                 {
-                    g.sens = 0.003f;
-                    g.xrot = 0.f;
-                    g.yrot = 1.5f;
-                    g.pp = (vec){0.f, 4.f, 0.f};
-                    g.ms = 9.3f;
-                    g.st = 10.f;
+                    defaultState(1);
                 }
                 else if(event.key.keysym.sym == SDLK_F3)
                 {
@@ -1314,12 +1335,34 @@ void main_loop()
                     timestamp(tmp);
                     printf("[%s] Loaded state.\n", tmp);
                 }
+#ifdef __linux__
+                else if(event.key.keysym.sym == SDLK_F10) // cwd export
+                {
+                    char tmp[32];
+                    const time_t tt = time(0);
+                    strftime(tmp, 32, "%d-%m-%y-%H:%M:%S", localtime(&tt));
+                    if(fork() == 0)
+                    {
+                        char cmd[512];
+                        sprintf(cmd, "%s/Documents", getenv("HOME"));
+                        mkdir(cmd, 0755);
+                        sprintf(cmd, "zip -jq9 %s/Documents/voxelpaint_%s.zip %s/world.db %s/tiles.ppm", getenv("HOME"), tmp, appdir, appdir);
+                        if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
+                    }
+                    else
+                    {
+                        char tmp2[16];
+                        timestamp(tmp2);
+                        printf("[%s] Exported data to: %s/Documents/voxelpaint_%s.zip\n", tmp2, getenv("HOME"), tmp);
+                    }
+                }
+#endif
 #ifdef VERBOSE
                 else if(event.key.keysym.sym == SDLK_p)
                 {
                     for(int i = 0; i < 1000; i++)
-                    {
-                        g.voxels[g.num_voxels] = (vec){randfc()*ddist, randfc()*ddist, randfc()*ddist, esRand(0, 16)};
+                    {   // none of these voxels are grid-aligned without the roundf()
+                        g.voxels[g.num_voxels] = (vec){roundf(randfc()*ddist), roundf(randfc()*ddist), roundf(randfc()*ddist), esRand(0, 16)};
                         g.num_voxels++;
                     }
                 }
@@ -1481,6 +1524,8 @@ void main_loop()
         {
             g.look_dir.z = 0.f;
             vNorm(&g.look_dir);
+            // this can break the player positions with nans at times
+            if(isnormal(g.pp.x) == 0 || isnormal(g.pp.y) == 0 || isnormal(g.pp.z) == 0){defaultState(1);}
         }
 
         if(ptt != 0.f && t > ptt) // place trigger
@@ -1750,6 +1795,9 @@ int main(int argc, char** argv)
     printf("R / G = Gravity on/off.\n");
     printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
+#ifdef __linux__
+    printf("F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.\n");
+#endif
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
     printf("* You can customize the 17 block tileset,\n  in your prefPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
@@ -1844,16 +1892,7 @@ int main(int argc, char** argv)
     if(loadState() == 0)
     {
         // default state
-        g.sens = 0.003f;
-        g.xrot = 0.f;
-        g.yrot = 1.5f;
-        g.pp = (vec){0.f, 4.f, 0.f};
-        g.ms = 9.3f;
-        g.st = 10.f;
-        g.pb = (vec){0.f, 0.f, 0.f, -1.f};
-        g.lms = g.ms;
-        g.cms = g.ms*2.f;
-        g.grav = 0;
+        defaultState(0);
 
         // write ppm of tiles to appdir
         if(fc == NULL)
@@ -1875,7 +1914,19 @@ int main(int argc, char** argv)
     }
 
     // argv mouse sensitivity
-    if(argc == 2){g.sens = atof(argv[1]);}
+    if(argc >= 2){g.sens = atof(argv[1]);}
+
+    // make sure voxel data is grid-aligned
+    if(argc == 3)
+    {
+        for(int i = 0; i < g.num_voxels; i++)
+        {
+            if(g.voxels[i].w < 0){continue;}
+            g.voxels[i].x = roundf(g.voxels[i].x);
+            g.voxels[i].y = roundf(g.voxels[i].y);
+            g.voxels[i].z = roundf(g.voxels[i].z);
+        }
+    }
 
     // loop
 #ifdef VERBOSE
@@ -1891,6 +1942,7 @@ int main(int argc, char** argv)
             char tmp[16];
             timestamp(tmp);
             printf("[%s] %u fps, %u voxels\n", tmp, fps/3, g.num_voxels);
+            //printf("%f %f %f %f %f %f %f %f %f %f %u\n", g.xrot, g.yrot, g.pp.x, g.pp.y, g.pp.z, g.pp.w, g.ms, g.st, g.lms, g.cms, g.grav);
             fps = 0;
             ft = t+3.f;
         }
