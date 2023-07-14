@@ -1340,7 +1340,7 @@ void main_loop()
                 {
                     char tmp[32];
                     const time_t tt = time(0);
-                    strftime(tmp, 32, "%d-%m-%y-%H:%M:%S", localtime(&tt));
+                    strftime(tmp, 32, "%d-%m-%y_%H:%M:%S", localtime(&tt));
                     if(fork() == 0)
                     {
                         char cmd[512];
