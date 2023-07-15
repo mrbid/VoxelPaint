@@ -1461,7 +1461,7 @@ void main_loop()
                     loadState();
                 }
 #ifdef __linux__
-                else if(event.key.keysym.sym == SDLK_F10) // cwd export
+                else if(event.key.keysym.sym == SDLK_F10) // export
                 {
                     char tmp[32];
                     const time_t tt = time(0);
