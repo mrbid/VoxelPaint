@@ -534,6 +534,7 @@ unsigned char tiles[] = { // 272, 16, 3
 };
 
 #include <time.h>
+#include <zlib.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
@@ -542,10 +543,13 @@ unsigned char tiles[] = { // 272, 16, 3
     #include <unistd.h>
     #include <sys/stat.h>
     #include <sys/types.h>
+    #include <sys/time.h>
+    #include <locale.h>
 #endif
 
 // main settings
 //#define SKYBLUE
+//#define NO_COMPRESSION
 //#define VERBOSE
 #include "inc/esVoxel.h"
 
@@ -570,15 +574,25 @@ uint focus_mouse = 0;   // mouse lock
 float ddist = 460.f;    // view distance
 float ddist2 = 460.f*460.f;
 vec ipp;                // inverse player position
+vec look_dir;           // camera look direction
 int lray = 0;           // pointed at node index
 float ptt = 0.f;        // place timing trigger (for repeat place)
 float dtt = 0.f;        // delete timing trigger (for repeat delete)
+uint fks = 0;           // F-Key state (fast mode toggle)
 
 //*************************************
 // utility functions
 //*************************************
 void timestamp(char* ts){const time_t tt = time(0);strftime(ts, 16, "%H:%M:%S", localtime(&tt));}
 forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
+uint64_t microtime()
+{
+    struct timeval tv;
+    struct timezone tz;
+    memset(&tz, 0, sizeof(struct timezone));
+    gettimeofday(&tv, &tz);
+    return 1000000 * tv.tv_sec + tv.tv_usec;
+}
 
 //*************************************
 // game state functions
@@ -586,29 +600,25 @@ forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
 
 // game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
+#define max_data_size 67108948 // (max_voxels*16) + 84
+#define header_size 80
 typedef struct
 {
-    // voxels
-    uint num_voxels;
-    vec voxels[max_voxels]; // x,y,z,w (w = texture_id)
-
-    // camera vars
-    float sens, xrot, yrot;
-    vec look_dir; // camera look direction
-
-    // player vars
     vec pp;     // player position
-    float ms;   // player move speed
     vec pb;     // place block pos
+    float sens; // mouse sensitivity
+    float xrot; // camera x-axis rotation
+    float yrot; // camera y-axis rotation
     float st;   // selected texture
-
+    float ms;   // player move speed
     float cms;  // custom move speed (high)
     float lms;  // custom move speed (low)
     uint grav;  // gravity on/off toggle
+    uint num_voxels;
+    vec voxels[max_voxels]; // x,y,z,w (w = texture_id)
 }
 game_state;
 game_state g; // 64mb
-uint fks = 0;
 
 void defaultState(const uint type)
 {
@@ -630,52 +640,186 @@ void defaultState(const uint type)
     g.grav = 0;
 }
 
-void saveState()
-{
-    char file[256];
-    sprintf(file, "%sworld.db", appdir);
-    FILE* f = fopen(file, "wb");
-    if(f != NULL)
+#ifndef NO_COMPRESSION
+    void saveState()
     {
-        unsigned int strikeout = 0;
-        while(fwrite(&g, 1, sizeof(game_state), f) != sizeof(game_state))
+    #ifdef __linux__
+        setlocale(LC_NUMERIC, "");
+        const uint64_t st = microtime();
+    #endif
+        char file[256];
+        sprintf(file, "%sworld.gz", appdir);
+        gzFile f = gzopen(file, "wb");
+        if(f != Z_NULL)
         {
-            char tmp[16];
-            timestamp(tmp);
-            printf("[%s] Writing world.db failed... Trying again.\n", tmp);
-            strikeout++;
-            if(strikeout > 3333)
+            unsigned int strikeout = 0;
+            const size_t ws = header_size + (g.num_voxels*sizeof(vec));
+            while(gzwrite(f, &g, ws) != ws)
             {
-                printf("[%s] Saving failed.\n", tmp);
-                break;
+                char tmp[16];
+                timestamp(tmp);
+                printf("[%s] Writing world.db failed... Trying again.\n", tmp);
+                strikeout++;
+                if(strikeout > 3333)
+                {
+                    printf("[%s] Saving failed.\n", tmp);
+                    break;
+                }
             }
-        }
-        fclose(f);
-    }
-    char tmp[16];
-    timestamp(tmp);
-    printf("[%s] Saved %u voxels\n", tmp, g.num_voxels);
-}
-
-uint loadState()
-{
-    char file[256];
-    sprintf(file, "%sworld.db", appdir);
-    FILE* f = fopen(file, "rb");
-    if(f != NULL)
-    {
-        if(fread(&g, 1, sizeof(game_state), f) != sizeof(game_state))
-        {
+            gzclose(f);
             char tmp[16];
             timestamp(tmp);
-            printf("[%s] world.db was of an unexpected size.\n", tmp);
+    #ifndef __linux__
+            printf("[%s] Saved %'u voxels\n", tmp, g.num_voxels);
+    #else
+            printf("[%s] Saved %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
+    #endif
         }
-        fclose(f);
-        fks = (g.ms == g.cms); // update F-Key State
-        return 1;
     }
-    return 0;
-}
+
+    uint loadState()
+    {
+    #ifdef __linux__
+        setlocale(LC_NUMERIC, "");
+        const uint64_t st = microtime();
+    #endif
+        char file[256];
+        sprintf(file, "%sworld.gz", appdir);
+        gzFile f = gzopen(file, "rb");
+        if(f != Z_NULL)
+        {
+            int gr = gzread(f, &g, max_data_size);
+            gzclose(f);
+            fks = (g.ms == g.cms); // update F-Key State
+            char tmp[16];
+            timestamp(tmp);
+    #ifndef __linux__
+            printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
+    #else
+            printf("[%s] Loaded %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
+    #endif
+            return 1;
+        }
+        return 0;
+    }
+
+    // convert old state file to new compressed one
+    typedef struct {
+        uint num_voxels;
+        vec voxels[max_voxels]; // x,y,z,w (w = texture_id)
+        float sens, xrot, yrot;
+        vec look_dir, pp;
+        float ms;
+        vec pb;
+        float st, cms, lms;
+        uint grav;
+    }old_game_state;
+    old_game_state og;
+    uint loadOldState()
+    {
+        char file[256];
+        sprintf(file, "%sworld.db", appdir);
+        FILE* f = fopen(file, "rb");
+        if(f != NULL)
+        {
+            if(fread(&og, 1, sizeof(old_game_state), f) != sizeof(old_game_state))
+            {
+                char tmp[16];
+                timestamp(tmp);
+                printf("[%s] world.db was of an unexpected size.\n", tmp);
+            }
+            fclose(f);
+            fks = (og.ms == og.cms); // update F-Key State
+            g.num_voxels = og.num_voxels;
+            memcpy(g.voxels, og.voxels, og.num_voxels*sizeof(vec));
+            g.sens = og.sens;
+            g.xrot = og.xrot;
+            g.yrot = og.yrot;
+            g.pp = og.pp;
+            g.ms = og.ms;
+            g.pb = og.pb;
+            g.st = og.st;
+            g.cms = og.cms;
+            g.lms = og.lms;
+            g.grav = og.grav;
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] loaded old world.db file and coverted to newer world.gz file.\n", tmp);
+            return 1;
+        }
+        return 0;
+    }
+#else
+    void saveState()
+    {
+    #ifdef __linux__
+        setlocale(LC_NUMERIC, "");
+        const uint64_t st = microtime();
+    #endif
+        char file[256];
+        sprintf(file, "%sworld.db", appdir);
+        FILE* f = fopen(file, "wb");
+        if(f != NULL)
+        {
+            unsigned int strikeout = 0;
+            const size_t ws = 84 + (g.num_voxels*sizeof(vec));
+            while(fwrite(&g, 1, ws, f) != ws)
+            {
+                char tmp[16];
+                timestamp(tmp);
+                printf("[%s] Writing world.db failed... Trying again.\n", tmp);
+                strikeout++;
+                if(strikeout > 3333)
+                {
+                    printf("[%s] Saving failed.\n", tmp);
+                    break;
+                }
+            }
+            fclose(f);
+            char tmp[16];
+            timestamp(tmp);
+    #ifndef __linux__
+            printf("[%s] Saved %u voxels\n", tmp, g.num_voxels);
+    #else
+            printf("[%s] Saved %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
+    #endif
+        }
+    }
+
+    uint loadState()
+    {
+    #ifdef __linux__
+        setlocale(LC_NUMERIC, "");
+        const uint64_t st = microtime();
+    #endif
+        char file[256];
+        sprintf(file, "%sworld.db", appdir);
+        FILE* f = fopen(file, "rb");
+        if(f != NULL)
+        {
+            fseek(f, 0, SEEK_END);
+            const long rs = ftell(f);
+            fseek(f, 0, SEEK_SET);
+            if(fread(&g, 1, rs, f) != rs)
+            {
+                char tmp[16];
+                timestamp(tmp);
+                printf("[%s] world.db was of an unexpected size.\n", tmp);
+            }
+            fclose(f);
+            fks = (g.ms == g.cms); // update F-Key State
+            char tmp[16];
+            timestamp(tmp);
+    #ifndef __linux__
+            printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
+    #else
+            printf("[%s] Loaded %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
+    #endif
+            return 1;
+        }
+        return 0;
+    }
+#endif
 
 //*************************************
 // ray & render functions
@@ -721,7 +865,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 	int hit = -1;
 	float bestdist;
 	float start_pos[] = {vec_start_pos.x, vec_start_pos.y, vec_start_pos.z};
-	float look_dir[] = {g.look_dir.x, g.look_dir.y, g.look_dir.z};
+	float lookdir[] = {look_dir.x, look_dir.y, look_dir.z};
 	for (int i = 0; i < g.num_voxels; i++)
     {
 		if(g.voxels[i].w < 0.f){continue;}
@@ -747,7 +891,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 		else
 			dist_to_start += 0.5f;
 
-		const float multiplier = dist_to_start / look_dir[j];
+		const float multiplier = dist_to_start / lookdir[j];
 
         // too far out (or not in the right direction), don't bother
 		if(multiplier > depth || (hit != -1 && multiplier > bestdist) || multiplier < 0.f){continue;}
@@ -756,7 +900,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 		// At least better than what it was originally though
 		// And with enough out of range there's still a chance average comes out under
 		{
-			float pos[] = {start_pos[0] + (look_dir[0] * multiplier), start_pos[1] + (look_dir[1] * multiplier), start_pos[2] + (look_dir[2] * multiplier)};
+			float pos[] = {start_pos[0] + (lookdir[0] * multiplier), start_pos[1] + (lookdir[1] * multiplier), start_pos[2] + (lookdir[2] * multiplier)};
 
 			if (pos[0] > g.voxels[i].x + 1.5f || pos[0] < g.voxels[i].x - 1.5f ||
 					pos[1] > g.voxels[i].y + 1.5f || pos[1] < g.voxels[i].y - 1.5f ||
@@ -790,7 +934,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 				float dist;
 				if(offset[n] > 0){dist = offset[n] - 0.5f;}else{dist = offset[n] + 0.5f;}
 
-				dist = dist / look_dir[n];
+				dist = dist / lookdir[n];
 				if (y == 0) {
 					first_dist = dist;
 					first_dir = n;
@@ -813,7 +957,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 		{
 			if(first_dist > depth || (hit != -1 && first_dist > bestdist)){continue;}
 
-			float pos[] = {start_pos[0] + (look_dir[0] * first_dist), start_pos[1] + (look_dir[1] * first_dist), start_pos[2] + (look_dir[2] * first_dist)};
+			float pos[] = {start_pos[0] + (lookdir[0] * first_dist), start_pos[1] + (lookdir[1] * first_dist), start_pos[2] + (lookdir[2] * first_dist)};
 
 			if ((first_dir == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) &&
 					(first_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
@@ -834,7 +978,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 			if (second_dist > depth || (hit != -1 && second_dist > bestdist))
 				continue;
 
-			float pos[] = {start_pos[0] + (look_dir[0] * second_dist), start_pos[1] + (look_dir[1] * second_dist), start_pos[2] + (look_dir[2] * second_dist)};
+			float pos[] = {start_pos[0] + (lookdir[0] * second_dist), start_pos[1] + (lookdir[1] * second_dist), start_pos[2] + (lookdir[2] * second_dist)};
 
 			if ((second_dir == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) &&
 					(second_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
@@ -888,7 +1032,7 @@ void traceViewPath(const uint face)
 // int ray(vec* hit_vec, const uint depth, const float stepsize, const vec start_pos)
 // {
 //     vec inc;
-//     vMulS(&inc, g.look_dir, stepsize);
+//     vMulS(&inc, look_dir, stepsize);
 //     int hit = -1;
 //     vec rp = start_pos;
 //     for(uint i = 0; i < depth; i++)
@@ -1018,7 +1162,7 @@ void doPerspective()
 forceinline uint insideFrustum(const float x, const float y, const float z)
 {
     const float xm = x+g.pp.x, ym = y+g.pp.y, zm = z+g.pp.z;
-    return (xm*g.look_dir.x) + (ym*g.look_dir.y) + (zm*g.look_dir.z) > 0.f; // check the angle
+    return (xm*look_dir.x) + (ym*look_dir.y) + (zm*look_dir.z) > 0.f; // check the angle
 }
 SDL_Surface* surfaceFromData(const Uint32* data, Uint32 w, Uint32 h)
 {
@@ -1324,16 +1468,10 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_F3)
                 {
                     saveState();
-                    char tmp[16];
-                    timestamp(tmp);
-                    printf("[%s] Saved state.\n", tmp);
                 }
                 else if(event.key.keysym.sym == SDLK_F8)
                 {
                     loadState();
-                    char tmp[16];
-                    timestamp(tmp);
-                    printf("[%s] Loaded state.\n", tmp);
                 }
 #ifdef __linux__
                 else if(event.key.keysym.sym == SDLK_F10) // cwd export
@@ -1341,22 +1479,16 @@ void main_loop()
                     char tmp[32];
                     const time_t tt = time(0);
                     strftime(tmp, 32, "%d-%m-%y_%H:%M:%S", localtime(&tt));
-                    if(fork() == 0)
-                    {
-                        char cmd[512];
-                        sprintf(cmd, "%s/Documents", getenv("HOME"));
-                        mkdir(cmd, 0755);
-                        sprintf(cmd, "%s/Documents/VoxelPaint_exports", getenv("HOME"));
-                        mkdir(cmd, 0755);
-                        sprintf(cmd, "/usr/bin/zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir);
-                        if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
-                    }
-                    else
-                    {
-                        char tmp2[16];
-                        timestamp(tmp2);
-                        printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
-                    }
+                    char cmd[512];
+                    sprintf(cmd, "%s/Documents", getenv("HOME"));
+                    mkdir(cmd, 0755);
+                    sprintf(cmd, "%s/Documents/VoxelPaint_exports", getenv("HOME"));
+                    mkdir(cmd, 0755);
+                    sprintf(cmd, "/usr/bin/zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir);
+                    if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
+                    char tmp2[16];
+                    timestamp(tmp2);
+                    printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
                 }
 #endif
 #ifdef VERBOSE
@@ -1504,6 +1636,7 @@ void main_loop()
 
             case SDL_QUIT:
             {
+                SDL_HideWindow(wnd);
                 saveState();
                 SDL_FreeSurface(s_icon);
                 SDL_GL_DeleteContext(glc);
@@ -1520,12 +1653,12 @@ void main_loop()
 //*************************************
     if(focus_mouse == 1)
     {
-        mGetViewZ(&g.look_dir, view);
+        mGetViewZ(&look_dir, view);
 
         if(g.grav == 1)
         {
-            g.look_dir.z = 0.f;
-            vNorm(&g.look_dir);
+            look_dir.z = 0.f;
+            vNorm(&look_dir);
             // this can break the player positions with nans at times
             if(isnormal(g.pp.x) == 0 || isnormal(g.pp.y) == 0 || isnormal(g.pp.z) == 0){defaultState(1);}
         }
@@ -1546,13 +1679,13 @@ void main_loop()
         if(ks[0] == 1) // W
         {
             vec m;
-            vMulS(&m, g.look_dir, g.ms * dt);
+            vMulS(&m, look_dir, g.ms * dt);
             vSub(&g.pp, g.pp, m);
         }
         else if(ks[2] == 1) // S
         {
             vec m;
-            vMulS(&m, g.look_dir, g.ms * dt);
+            vMulS(&m, look_dir, g.ms * dt);
             vAdd(&g.pp, g.pp, m);
         }
 
@@ -1638,7 +1771,7 @@ void main_loop()
             if(falling == 1)        {g.pp.z += (g.ms*0.5f)*dt;}
             else if(falling == 0)   {g.pp.z -= g.ms*dt;}
 
-            mGetViewZ(&g.look_dir, view);
+            mGetViewZ(&look_dir, view);
         }
 
     //*************************************
@@ -1690,8 +1823,8 @@ void main_loop()
     }
 
     // crosshair
-    mGetViewZ(&g.look_dir, view);
-    const float nx = ipp.x+(g.look_dir.x*130.f), ny = ipp.y+(g.look_dir.y*130.f), nz = ipp.z+(g.look_dir.z*130.f);
+    mGetViewZ(&look_dir, view);
+    const float nx = ipp.x+(look_dir.x*130.f), ny = ipp.y+(look_dir.y*130.f), nz = ipp.z+(look_dir.z*130.f);
     glUniform4f(voxel_id, nx, ny, nz, g.st);
     glDisable(GL_DEPTH_TEST);
         glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
@@ -1880,17 +2013,21 @@ int main(int argc, char** argv)
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mdlVoxel.iid);
 
-//*************************************
-// execute update / render loop
-//*************************************
-
     // center voxel
     memset(g.voxels, 0x00, sizeof(vec)*max_voxels);
     g.voxels[0] = (vec){0.f, 0.f, 0.f, 13.f};
     g.num_voxels = 1;
 
+//*************************************
+// init stuff
+//*************************************
+
     // load states
+#ifdef NO_COMPRESSION
     if(loadState() == 0)
+#else
+    if(loadState() == 0 && loadOldState() == 0)
+#endif
     {
         // default state
         defaultState(0);
@@ -1907,12 +2044,6 @@ int main(int argc, char** argv)
             }
         }
     }
-    else
-    {
-        char tmp[16];
-        timestamp(tmp);
-        printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
-    }
 
     // argv mouse sensitivity
     if(argc >= 2){g.sens = atof(argv[1]);}
@@ -1928,6 +2059,10 @@ int main(int argc, char** argv)
             g.voxels[i].z = roundf(g.voxels[i].z);
         }
     }
+
+//*************************************
+// execute update / render loop
+//*************************************
 
     // loop
 #ifdef VERBOSE
