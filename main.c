@@ -533,8 +533,14 @@ unsigned char tiles[] = { // 272, 16, 3
   ".R\213.S\225\062Z\241\066a\214/T\214/T\227\062Z"
 };
 
+//#define SKYBLUE
+#define NO_COMPRESSION
+#define VERBOSE
+
 #include <time.h>
-#include <zlib.h>
+#ifndef NO_COMPRESSION
+    #include <zlib.h>
+#endif
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengles2.h>
@@ -547,10 +553,6 @@ unsigned char tiles[] = { // 272, 16, 3
     #include <locale.h>
 #endif
 
-// main settings
-//#define SKYBLUE
-//#define NO_COMPRESSION
-//#define VERBOSE
 #include "inc/esVoxel.h"
 
 #define uint GLuint
@@ -602,8 +604,8 @@ forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
 
 // game data (for fast save and load)
 #define max_voxels 4194304 // 4.2 million
-#define max_data_size 67108948 // (max_voxels*16) + 84
-#define header_size 80
+#define header_size 68
+#define max_data_size 67108932 // (max_voxels*sizeof(vec)) + header_size
 typedef struct
 {
     vec pp;     // player position
@@ -643,7 +645,128 @@ void defaultState(const uint type)
     if(g.num_voxels == 0){g.num_voxels = 1;}
 }
 
-#ifndef NO_COMPRESSION
+// convert old state file to new compressed one
+typedef struct {
+    uint num_voxels;
+    vec voxels[max_voxels];
+    float sens, xrot, yrot;
+    vec look_dir, pp;
+    float ms;
+    vec pb;
+    float st, cms, lms;
+    uint grav;
+}old_game_state;
+old_game_state og;
+uint loadOldState()
+{
+    char file[256];
+    sprintf(file, "%sworld.db", appdir);
+    FILE* f = fopen(file, "rb");
+    if(f != NULL)
+    {
+        if(fread(&og, 1, sizeof(old_game_state), f) != sizeof(old_game_state))
+        {
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] world.db was of an unexpected size.\n", tmp);
+        }
+        fclose(f);
+        fks = (og.ms == og.cms); // update F-Key State
+        g.num_voxels = og.num_voxels;
+        memcpy(g.voxels, og.voxels, og.num_voxels*sizeof(vec));
+        g.sens = og.sens;
+        g.xrot = og.xrot;
+        g.yrot = og.yrot;
+        g.pp = og.pp;
+        g.ms = og.ms;
+        g.pb = og.pb;
+        g.st = og.st;
+        g.cms = og.cms;
+        g.lms = og.lms;
+        g.grav = og.grav;
+        char tmp[16];
+        timestamp(tmp);
+        printf("[%s] Loaded old world.db file %u voxels.\n", tmp, g.num_voxels);
+        return 1;
+    }
+    return 0;
+}
+
+uint loadUncompressedState()
+{
+#ifdef __linux__
+    setlocale(LC_NUMERIC, "");
+    const uint64_t st = microtime();
+#endif
+    char file[256];
+    sprintf(file, "%sworld.db2", appdir);
+    FILE* f = fopen(file, "rb");
+    if(f != NULL)
+    {
+        fseek(f, 0, SEEK_END);
+        long rs = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if(rs > max_data_size-12){rs = max_data_size-12;}
+        //printf("%lu %lu\n", max_data_size, sizeof(game_state));
+        if(fread(&g, 1, rs, f) != rs)
+        {
+            char tmp[16];
+            timestamp(tmp);
+            printf("[%s] fread() was of an unexpected size.\n", tmp);
+        }
+        fclose(f);
+        fks = (g.ms == g.cms); // update F-Key State
+        char tmp[16];
+        timestamp(tmp);
+#ifndef __linux__
+        printf("[%s] Loaded %u voxels.\n", tmp, g.num_voxels);
+#else
+        printf("[%s] Loaded %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
+#endif
+        return 1;
+    }
+    return 0;
+}
+
+#ifdef NO_COMPRESSION
+    void saveState()
+    {
+    #ifdef __linux__
+        setlocale(LC_NUMERIC, "");
+        const uint64_t st = microtime();
+    #endif
+        char file[256];
+        sprintf(file, "%sworld.db2", appdir);
+        FILE* f = fopen(file, "wb");
+        if(f != NULL)
+        {
+            unsigned int strikeout = 0;
+            const size_t ws = header_size + (g.num_voxels*sizeof(vec));
+            while(fwrite(&g, 1, ws, f) != ws)
+            {
+                char tmp[16];
+                timestamp(tmp);
+                printf("[%s] Writing failed... Trying again.\n", tmp);
+                strikeout++;
+                if(strikeout > 3333)
+                {
+                    printf("[%s] Saving failed.\n", tmp);
+                    break;
+                }
+            }
+            fclose(f);
+            char tmp[16];
+            timestamp(tmp);
+    #ifndef __linux__
+            printf("[%s] Saved %u voxels.\n", tmp, g.num_voxels);
+    #else
+            printf("[%s] Saved %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
+    #endif
+        }
+    }
+
+    uint loadState(){return loadUncompressedState();}
+#else
     void saveState()
     {
     #ifdef __linux__
@@ -661,7 +784,7 @@ void defaultState(const uint type)
             {
                 char tmp[16];
                 timestamp(tmp);
-                printf("[%s] Writing world.db failed... Trying again.\n", tmp);
+                printf("[%s] Writing failed... Trying again.\n", tmp);
                 strikeout++;
                 if(strikeout > 3333)
                 {
@@ -673,7 +796,7 @@ void defaultState(const uint type)
             char tmp[16];
             timestamp(tmp);
     #ifndef __linux__
-            printf("[%s] Saved %'u voxels\n", tmp, g.num_voxels);
+            printf("[%s] Saved %'u voxels.\n", tmp, g.num_voxels);
     #else
             printf("[%s] Saved %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
     #endif
@@ -693,124 +816,6 @@ void defaultState(const uint type)
         {
             int gr = gzread(f, &g, max_data_size);
             gzclose(f);
-            fks = (g.ms == g.cms); // update F-Key State
-            char tmp[16];
-            timestamp(tmp);
-    #ifndef __linux__
-            printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
-    #else
-            printf("[%s] Loaded %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
-    #endif
-            return 1;
-        }
-        return 0;
-    }
-
-    // convert old state file to new compressed one
-    typedef struct {
-        uint num_voxels;
-        vec voxels[max_voxels];
-        float sens, xrot, yrot;
-        vec look_dir, pp;
-        float ms;
-        vec pb;
-        float st, cms, lms;
-        uint grav;
-    }old_game_state;
-    old_game_state og;
-    uint loadOldState()
-    {
-        char file[256];
-        sprintf(file, "%sworld.db", appdir);
-        FILE* f = fopen(file, "rb");
-        if(f != NULL)
-        {
-            if(fread(&og, 1, sizeof(old_game_state), f) != sizeof(old_game_state))
-            {
-                char tmp[16];
-                timestamp(tmp);
-                printf("[%s] world.db was of an unexpected size.\n", tmp);
-            }
-            fclose(f);
-            fks = (og.ms == og.cms); // update F-Key State
-            g.num_voxels = og.num_voxels;
-            memcpy(g.voxels, og.voxels, og.num_voxels*sizeof(vec));
-            g.sens = og.sens;
-            g.xrot = og.xrot;
-            g.yrot = og.yrot;
-            g.pp = og.pp;
-            g.ms = og.ms;
-            g.pb = og.pb;
-            g.st = og.st;
-            g.cms = og.cms;
-            g.lms = og.lms;
-            g.grav = og.grav;
-            char tmp[16];
-            timestamp(tmp);
-            printf("[%s] loaded old world.db file and coverted to newer world.gz file.\n", tmp);
-            printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
-            return 1;
-        }
-        return 0;
-    }
-#else
-    void saveState()
-    {
-    #ifdef __linux__
-        setlocale(LC_NUMERIC, "");
-        const uint64_t st = microtime();
-    #endif
-        char file[256];
-        sprintf(file, "%sworld.db", appdir);
-        FILE* f = fopen(file, "wb");
-        if(f != NULL)
-        {
-            unsigned int strikeout = 0;
-            const size_t ws = 84 + (g.num_voxels*sizeof(vec));
-            while(fwrite(&g, 1, ws, f) != ws)
-            {
-                char tmp[16];
-                timestamp(tmp);
-                printf("[%s] Writing world.db failed... Trying again.\n", tmp);
-                strikeout++;
-                if(strikeout > 3333)
-                {
-                    printf("[%s] Saving failed.\n", tmp);
-                    break;
-                }
-            }
-            fclose(f);
-            char tmp[16];
-            timestamp(tmp);
-    #ifndef __linux__
-            printf("[%s] Saved %u voxels\n", tmp, g.num_voxels);
-    #else
-            printf("[%s] Saved %'u voxels. (%'lu μs)\n", tmp, g.num_voxels, microtime()-st);
-    #endif
-        }
-    }
-
-    uint loadState()
-    {
-    #ifdef __linux__
-        setlocale(LC_NUMERIC, "");
-        const uint64_t st = microtime();
-    #endif
-        char file[256];
-        sprintf(file, "%sworld.db", appdir);
-        FILE* f = fopen(file, "rb");
-        if(f != NULL)
-        {
-            fseek(f, 0, SEEK_END);
-            const long rs = ftell(f);
-            fseek(f, 0, SEEK_SET);
-            if(fread(&g, 1, rs, f) != rs)
-            {
-                char tmp[16];
-                timestamp(tmp);
-                printf("[%s] world.db was of an unexpected size.\n", tmp);
-            }
-            fclose(f);
             fks = (g.ms == g.cms); // update F-Key State
             char tmp[16];
             timestamp(tmp);
@@ -1104,7 +1109,7 @@ int placeVoxel(const float repeat_delay)
 
     if(g.pb.w == -1){return 0;}
 
-    for(uint i = 0; i < max_voxels; i++)
+    for(uint i = 0; i < g.num_voxels; i++)
     {
         if(g.voxels[i].w < 0.f)
         {
@@ -1476,7 +1481,7 @@ void main_loop()
 #ifdef VERBOSE
                 else if(event.key.keysym.sym == SDLK_p)
                 {
-                    for(int i = 0; i < 10000; i++)
+                    for(int i = 0; i < 100000; i++)
                     {   // none of these voxels are grid-aligned without the roundf()
                         if(g.num_voxels >= max_voxels){break;}
                         g.voxels[g.num_voxels] = (vec){roundf(randfc()*ddist), roundf(randfc()*ddist), roundf(randfc()*ddist), esRand(0, 16)};
@@ -2007,9 +2012,9 @@ int main(int argc, char** argv)
 
     // load states
 #ifdef NO_COMPRESSION
-    if(loadState() == 0)
-#else
     if(loadState() == 0 && loadOldState() == 0)
+#else
+    if(loadState() == 0 && loadUncompressedState() == 0 && loadOldState() == 0)
 #endif
     {
         // default state
@@ -2026,6 +2031,11 @@ int main(int argc, char** argv)
                 fclose(f);
             }
         }
+
+        // done
+        char tmp[16];
+        timestamp(tmp);
+        printf("[%s] New world created.\n", tmp);
     }
     if(g.num_voxels == 0){g.num_voxels = 1;}
 
