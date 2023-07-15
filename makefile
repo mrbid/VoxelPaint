@@ -20,6 +20,7 @@ all:
 test:
 	gcc main.c -Ofast -lm -lz -lSDL2 -lGLESv2 -lEGL -o vox_test
 	./vox_test
+	rm vox_test
 
 clean:
 	rm -r release
