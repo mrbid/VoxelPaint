@@ -21,6 +21,7 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * R / G = Gravity on/off.
 * F3 = Save. (auto saves on exit or idle for more than 3 minutes)
 * F8 = Load. (will erase what you have done since the last save)
+* F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.
 
 Arrow Keys can be used to move the view around.
 
