@@ -550,7 +550,7 @@ unsigned char tiles[] = { // 272, 16, 3
 // main settings
 //#define SKYBLUE
 //#define NO_COMPRESSION
-//#define VERBOSE
+#define VERBOSE
 #include "inc/esVoxel.h"
 
 #define uint GLuint
@@ -1496,8 +1496,9 @@ void main_loop()
 #ifdef VERBOSE
                 else if(event.key.keysym.sym == SDLK_p)
                 {
-                    for(int i = 0; i < 1000; i++)
+                    for(int i = 0; i < 10000; i++)
                     {   // none of these voxels are grid-aligned without the roundf()
+                        if(g.num_voxels >= max_voxels){break;}
                         g.voxels[g.num_voxels] = (vec){roundf(randfc()*ddist), roundf(randfc()*ddist), roundf(randfc()*ddist), esRand(0, 16)};
                         g.num_voxels++;
                     }
