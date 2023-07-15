@@ -534,7 +534,7 @@ unsigned char tiles[] = { // 272, 16, 3
 };
 
 //#define SKYBLUE
-#define NO_COMPRESSION
+//#define NO_COMPRESSION
 //#define VERBOSE
 
 #include <time.h>
