@@ -640,6 +640,7 @@ void defaultState(const uint type)
         g.cms = g.ms*2.f;
     }
     g.grav = 0;
+    if(g.num_voxels == 0){g.num_voxels = 1;}
 }
 
 #ifndef NO_COMPRESSION
@@ -708,7 +709,7 @@ void defaultState(const uint type)
     // convert old state file to new compressed one
     typedef struct {
         uint num_voxels;
-        vec voxels[max_voxels]; // x,y,z,w (w = texture_id)
+        vec voxels[max_voxels];
         float sens, xrot, yrot;
         vec look_dir, pp;
         float ms;
@@ -1995,14 +1996,14 @@ int main(int argc, char** argv)
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mdlVoxel.iid);
 
+//*************************************
+// init stuff
+//*************************************
+
     // center voxel
     memset(g.voxels, 0x00, sizeof(vec)*max_voxels);
     g.voxels[0] = (vec){0.f, 0.f, 0.f, 13.f};
     g.num_voxels = 1;
-
-//*************************************
-// init stuff
-//*************************************
 
     // load states
 #ifdef NO_COMPRESSION
@@ -2026,6 +2027,7 @@ int main(int argc, char** argv)
             }
         }
     }
+    if(g.num_voxels == 0){g.num_voxels = 1;}
 
     // argv mouse sensitivity
     if(argc >= 2){g.sens = atof(argv[1]);}
@@ -2045,8 +2047,6 @@ int main(int argc, char** argv)
 //*************************************
 // execute update / render loop
 //*************************************
-
-    // loop
 #ifdef VERBOSE
     t = fTime();
     uint fps = 0;
