@@ -1645,10 +1645,8 @@ void main_loop()
 
         if(g.grav == 1)
         {
-            look_dir.z = 0.f;
+            look_dir.z = -0.001f;
             vNorm(&look_dir);
-            // this can break the player positions with nans at times
-            if(isnormal(g.pp.x) == 0 || isnormal(g.pp.y) == 0 || isnormal(g.pp.z) == 0){defaultState(1);}
         }
 
         if(ptt != 0.f && t > ptt) // place trigger
