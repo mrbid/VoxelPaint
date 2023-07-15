@@ -585,6 +585,7 @@ uint fks = 0;           // F-Key state (fast mode toggle)
 //*************************************
 void timestamp(char* ts){const time_t tt = time(0);strftime(ts, 16, "%H:%M:%S", localtime(&tt));}
 forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
+#ifdef __linux__
 uint64_t microtime()
 {
     struct timeval tv;
@@ -593,6 +594,7 @@ uint64_t microtime()
     gettimeofday(&tv, &tz);
     return 1000000 * tv.tv_sec + tv.tv_usec;
 }
+#endif
 
 //*************************************
 // game state functions
