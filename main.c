@@ -550,7 +550,7 @@ unsigned char tiles[] = { // 272, 16, 3
 // main settings
 //#define SKYBLUE
 //#define NO_COMPRESSION
-//#define VERBOSE
+#define VERBOSE
 #include "inc/esVoxel.h"
 
 #define uint GLuint
@@ -586,14 +586,14 @@ uint fks = 0;           // F-Key state (fast mode toggle)
 void timestamp(char* ts){const time_t tt = time(0);strftime(ts, 16, "%H:%M:%S", localtime(&tt));}
 forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
 #ifdef __linux__
-uint64_t microtime()
-{
-    struct timeval tv;
-    struct timezone tz;
-    memset(&tz, 0, sizeof(struct timezone));
-    gettimeofday(&tv, &tz);
-    return 1000000 * tv.tv_sec + tv.tv_usec;
-}
+    uint64_t microtime()
+    {
+        struct timeval tv;
+        struct timezone tz;
+        memset(&tz, 0, sizeof(struct timezone));
+        gettimeofday(&tv, &tz);
+        return 1000000 * tv.tv_sec + tv.tv_usec;
+    }
 #endif
 
 //*************************************
@@ -651,7 +651,7 @@ void defaultState(const uint type)
     #endif
         char file[256];
         sprintf(file, "%sworld.gz", appdir);
-        gzFile f = gzopen(file, "wb");
+        gzFile f = gzopen(file, "wb1h");
         if(f != Z_NULL)
         {
             unsigned int strikeout = 0;
@@ -747,6 +747,7 @@ void defaultState(const uint type)
             char tmp[16];
             timestamp(tmp);
             printf("[%s] loaded old world.db file and coverted to newer world.gz file.\n", tmp);
+            printf("[%s] Loaded %u voxels\n", tmp, g.num_voxels);
             return 1;
         }
         return 0;
@@ -871,55 +872,41 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 	for (int i = 0; i < g.num_voxels; i++)
     {
 		if(g.voxels[i].w < 0.f){continue;}
-
 		float offset[] = {g.voxels[i].x - start_pos[0], g.voxels[i].y - start_pos[1], g.voxels[i].z - start_pos[2]};
 		int j = 0;
-
 		// hmmmmmm... is there some decent way to get around this...
 		float max = fabsf(offset[0]);
 		float tmp = fabsf(offset[1]);
 		if(tmp > max){max = tmp; j = 1;}
 		tmp = fabsf(offset[2]);
 		if(tmp > max){max = tmp; j = 2;}
-
 		if (max <= 0.5f) { // unlikely but better than breaking... costs some cycles though
 			*hit_vec = vec_start_pos;
 			return i;
 		}
-
 		float dist_to_start = offset[j];
-		if (dist_to_start > 0.f)
-			dist_to_start -= 0.5f;
-		else
-			dist_to_start += 0.5f;
-
+		if(dist_to_start > 0.f){dist_to_start -= 0.5f;}else{dist_to_start += 0.5f;}
 		const float multiplier = dist_to_start / lookdir[j];
-
         // too far out (or not in the right direction), don't bother
 		if(multiplier > depth || (hit != -1 && multiplier > bestdist) || multiplier < 0.f){continue;}
-
 		// Might end up taking all 222 of those cycles below... :/
 		// At least better than what it was originally though
 		// And with enough out of range there's still a chance average comes out under
 		{
 			float pos[] = {start_pos[0] + (lookdir[0] * multiplier), start_pos[1] + (lookdir[1] * multiplier), start_pos[2] + (lookdir[2] * multiplier)};
-
 			if (pos[0] > g.voxels[i].x + 1.5f || pos[0] < g.voxels[i].x - 1.5f ||
-					pos[1] > g.voxels[i].y + 1.5f || pos[1] < g.voxels[i].y - 1.5f ||
-					pos[2] > g.voxels[i].z + 1.5f || pos[2] < g.voxels[i].z - 1.5f) {
-				continue; // not even a chance of hitting
-			}
-
+				pos[1] > g.voxels[i].y + 1.5f || pos[1] < g.voxels[i].y - 1.5f ||
+				pos[2] > g.voxels[i].z + 1.5f || pos[2] < g.voxels[i].z - 1.5f) {continue;} // not even a chance of hitting
+            ///
 			if ((j == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) && // j == n so float inaccuracies won't proceed to tell me that it's out after I just put it on the edge
-					(j == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
-					(j == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f))) { // hit
+				(j == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
+				(j == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f))) { // hit
 				hit = i;
 				float sign;
 				if(offset[j] > 0.f){sign = -1.f;}else{sign = 1.f;}
 				if(j == 0){hit_vec->x = sign;}else{hit_vec->x = 0.f;}
 				if(j == 1){hit_vec->y = sign;}else{hit_vec->y = 0.f;}
 				if(j == 2){hit_vec->z = sign;}else{hit_vec->z = 0.f;}
-
 				bestdist = multiplier;
 				continue; // no need to check side cases :P
 			}
@@ -935,7 +922,6 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
             {
 				float dist;
 				if(offset[n] > 0){dist = offset[n] - 0.5f;}else{dist = offset[n] + 0.5f;}
-
 				dist = dist / lookdir[n];
 				if (y == 0) {
 					first_dist = dist;
@@ -951,19 +937,16 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 						second_dir = n;
 					}
 				}
-
 				y++;
 			}
 		}
         ///
 		{
 			if(first_dist > depth || (hit != -1 && first_dist > bestdist)){continue;}
-
 			float pos[] = {start_pos[0] + (lookdir[0] * first_dist), start_pos[1] + (lookdir[1] * first_dist), start_pos[2] + (lookdir[2] * first_dist)};
-
 			if ((first_dir == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) &&
-					(first_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
-					(first_dir == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f)))
+				(first_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
+				(first_dir == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f)))
             {
 				hit = i;
 				float sign;
@@ -977,14 +960,11 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 		}
         ///
 		{
-			if (second_dist > depth || (hit != -1 && second_dist > bestdist))
-				continue;
-
+			if (second_dist > depth || (hit != -1 && second_dist > bestdist)){continue;}
 			float pos[] = {start_pos[0] + (lookdir[0] * second_dist), start_pos[1] + (lookdir[1] * second_dist), start_pos[2] + (lookdir[2] * second_dist)};
-
 			if ((second_dir == 0 || (pos[0] >= g.voxels[i].x - 0.5f && pos[0] <= g.voxels[i].x + 0.5f)) &&
-					(second_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
-					(second_dir == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f)))
+				(second_dir == 1 || (pos[1] >= g.voxels[i].y - 0.5f && pos[1] <= g.voxels[i].y + 0.5f)) &&
+				(second_dir == 2 || (pos[2] >= g.voxels[i].z - 0.5f && pos[2] <= g.voxels[i].z + 0.5f)))
             {
 				hit = i;
 				float sign;
@@ -997,7 +977,6 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 			}
 		}
 	}
-
 	return hit;
 }
 void traceViewPath(const uint face)
