@@ -1471,7 +1471,7 @@ void main_loop()
                     mkdir(cmd, 0755);
                     sprintf(cmd, "%s/Documents/VoxelPaint_exports", getenv("HOME"));
                     mkdir(cmd, 0755);
-                    sprintf(cmd, "/usr/bin/zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir);
+                    sprintf(cmd, "zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir);
                     if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
                     char tmp2[16];
                     timestamp(tmp2);
