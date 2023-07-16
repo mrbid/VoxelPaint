@@ -622,7 +622,7 @@ typedef struct
     vec voxels[max_voxels]; // x,y,z,w (w = texture_id)
 }
 game_state;
-game_state g; // 64mb
+game_state g; // ~67mb
 
 void defaultState(const uint type)
 {
@@ -740,19 +740,12 @@ uint loadUncompressedState()
         FILE* f = fopen(file, "wb");
         if(f != NULL)
         {
-            unsigned int strikeout = 0;
             const size_t ws = header_size + (g.num_voxels*sizeof(vec));
-            while(fwrite(&g, 1, ws, f) != ws)
+            if(fwrite(&g, 1, ws, f) != ws)
             {
                 char tmp[16];
                 timestamp(tmp);
-                printf("[%s] Writing failed... Trying again.\n", tmp);
-                strikeout++;
-                if(strikeout > 3333)
-                {
-                    printf("[%s] Saving failed.\n", tmp);
-                    break;
-                }
+                printf("[%s] Write corrupted.\n", tmp);
             }
             fclose(f);
             char tmp[16];
@@ -778,19 +771,12 @@ uint loadUncompressedState()
         gzFile f = gzopen(file, "wb1h");
         if(f != Z_NULL)
         {
-            unsigned int strikeout = 0;
             const size_t ws = header_size + (g.num_voxels*sizeof(vec));
-            while(gzwrite(f, &g, ws) != ws)
+            if(gzwrite(f, &g, ws) != ws)
             {
                 char tmp[16];
                 timestamp(tmp);
-                printf("[%s] Writing failed... Trying again.\n", tmp);
-                strikeout++;
-                if(strikeout > 3333)
-                {
-                    printf("[%s] Saving failed.\n", tmp);
-                    break;
-                }
+                printf("[%s] Write corrupted.\n", tmp);
             }
             gzclose(f);
             char tmp[16];
@@ -861,7 +847,7 @@ GLuint texmap;
 const GLfloat voxel_vertices[] = {-0.5,0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,0.5,0.5,0.5,0.5,0.5,0.5,-0.5};
 const GLfloat voxel_normals[] = {0,0,1,0,0,1,0,0,1,0,-1,0,0,-1,0,0,-1,0,-1,0,0,-1,0,0,-1,0,0,0,0,-1,0,0,-1,0,0,-1,1,0,-0,1,0,-0,1,0,-0,0,1,-0,0,1,-0,0,1,-0,0,-0,1,0,-1,0,-1,0,0,0,0,-1,1,0,0,0,1,-0,0,1,-0};
 // the uv map has one "float" change that is based on: 1.f/(tiles_image_width/16.f)
-const GLfloat voxel_uvmap[] = {0,1,0.058824,0,0.058824,1,0.058824,1,0,0,0.058824,0,0,0,0.058823,1,0,1,0.058823,0,0,1,0,0,0.058824,1,0,0,0.058824,0,0,0,0.058824,1,0,1,0,0,0,1,0.058823,0,0.058823,1,0,1,0.058823,0,0.058823,1};
+const GLfloat voxel_uvmap[] = {0,1,0.058823529529,0,0.058823529529,1,0.058823529529,1,0,0,0.058823529529,0,0,0,0.058823529,1,0,1,0.058823529,0,0,1,0,0,0.058823529529,1,0,0,0.058823529529,0,0,0,0.058823529529,1,0,1,0,0,0,1,0.058823529,0,0.058823529,1,0,1,0.058823529,0,0.058823529,1};
 const GLubyte voxel_indices[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,0,18,1,3,19,4,6,20,7,9,21,10,12,22,13,15,23,24};
 const GLsizeiptr voxel_numind = 36;
 const GLsizeiptr voxel_numvert = 25;
