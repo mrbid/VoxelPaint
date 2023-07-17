@@ -706,7 +706,7 @@ uint loadUncompressedState()
         fseek(f, 0, SEEK_END);
         long rs = ftell(f);
         fseek(f, 0, SEEK_SET);
-        if(rs > max_data_size-12){rs = max_data_size-12;}
+        //if(rs > max_data_size-12){rs = max_data_size-12;}
         //printf("%lu %lu\n", max_data_size, sizeof(game_state));
         if(fread(&g, 1, rs, f) != rs)
         {
