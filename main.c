@@ -745,7 +745,7 @@ uint loadUncompressedState()
             {
                 char tmp[16];
                 timestamp(tmp);
-                printf("[%s] Write corrupted.\n", tmp);
+                printf("[%s] Save corrupted.\n", tmp);
             }
             fclose(f);
             char tmp[16];
@@ -776,7 +776,7 @@ uint loadUncompressedState()
             {
                 char tmp[16];
                 timestamp(tmp);
-                printf("[%s] Write corrupted.\n", tmp);
+                printf("[%s] Save corrupted.\n", tmp);
             }
             gzclose(f);
             char tmp[16];
