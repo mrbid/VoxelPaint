@@ -20,10 +20,6 @@
 #include "vec.h"
 #include "mat.h"
 
-//*************************************
-// MATRIX
-//*************************************
-
 // structures
 typedef struct
 {
@@ -344,13 +340,13 @@ GLint  shdHud_texcoord;
 GLint  shdHud_sampler;
 
 GLuint shdVoxel;
-GLint  shdVoxel_position;
 GLint  shdVoxel_projection;
 GLint  shdVoxel_view;
 GLint  shdVoxel_voxel;
+GLint  shdVoxel_position;
+GLint  shdVoxel_normal;
 GLint  shdVoxel_texcoord;
 GLint  shdVoxel_sampler;
-GLint  shdVoxel_normal;
 
 //
 
