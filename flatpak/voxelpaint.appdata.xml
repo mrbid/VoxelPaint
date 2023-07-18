@@ -3,7 +3,7 @@
 	<id type="desktop">voxelpaint.desktop</id>
 	<metadata_license>CC-BY-4.0</metadata_license>
 	<project_license>GPL-2.0-only</project_license>
-	<name>VoxelPaint</name>
+	<name>Voxel Paint</name>
 	<summary>Paint in 3D using voxels!</summary>
 	<description>
 		<p>Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.</p>
