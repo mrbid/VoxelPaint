@@ -364,9 +364,6 @@ GLint sampler_id;
 mat projection;
 mat view;
 
-// texture map
-GLuint texmap;
-
 // hit_vec will be untouched by this if there's no collision (function by hax/test_user)
 #define RAY_DEPTH 70
 int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
