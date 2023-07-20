@@ -24,7 +24,7 @@
 		</ul>
 		<p>Arrow Keys can be used to move the view around.</p>
 		<p>Your state is automatically saved on exit.</p>
-		<p>You can customize the 17 block tileset, in your prefPath you will find a tiles.ppm image file, edit this file and save it as a ppm with a P6 272 16 255 header. Krita can edit ppm files.</p>
+		<p>You can customize the 17 block tileset, in your dataPath you will find a tiles.ppm image file, edit this file and save it as a ppm with a P6 272 16 255 header. Krita can edit ppm files.</p>
 	</description>
 	<screenshots>
 		<screenshot>https://dashboard.snapcraft.io/site_media/appmedia/2023/07/Screenshot_2023-07-07_01-56-44_oXveCB3.png</screenshot>
