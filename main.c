@@ -596,6 +596,16 @@ forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
         gettimeofday(&tv, &tz);
         return 1000000 * tv.tv_sec + tv.tv_usec;
     }
+    uint dirExist(const char* dir)
+    {
+        struct stat st;
+        return (stat(dir, &st) == 0 && S_ISDIR(st.st_mode));
+    }
+    uint fileExist(const char* file)
+    {
+        struct stat st;
+        return (stat(file, &st) == 0);
+    }
 #endif
 
 //*************************************
@@ -1455,11 +1465,25 @@ void main_loop()
                     mkdir(cmd, 0755);
                     sprintf(cmd, "%s/Documents/VoxelPaint_exports", getenv("HOME"));
                     mkdir(cmd, 0755);
-                    sprintf(cmd, "zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/world.db2 %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir, appdir, appdir);
-                    if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
                     char tmp2[16];
                     timestamp(tmp2);
-                    printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
+                    if(fileExist("/usr/bin/7z") == 1)
+                    {
+                        sprintf(cmd, "7z a -y -bsp0 -bso0 -r %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.7z %s/*", getenv("HOME"), tmp, g.num_voxels, appdir);
+                        if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
+                        printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.7z\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
+                    }
+                    else if(fileExist("/usr/bin/zip") == 1)
+                    {
+                        sprintf(cmd, "zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/world.db2 %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir, appdir, appdir);
+                        if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
+                        printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
+                    }
+                    else
+                    {
+                        printf("[%s] Unable to export. `/usr/bin/7z` or `/usr/bin/zip` could not be located.\n", tmp2);
+                    }
+                    
                 }
 #endif
 #ifdef VERBOSE
