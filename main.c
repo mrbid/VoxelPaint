@@ -869,7 +869,7 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 		if(g.voxels[i].w < 0.f){continue;}
 		float offset[] = {g.voxels[i].x - start_pos[0], g.voxels[i].y - start_pos[1], g.voxels[i].z - start_pos[2]};
 		int j = 0;
-		// hmmmmmm... is there some decent way to get around this...
+        // hmmmmmm... is there some decent way to get around this...
 		float max = fabsf(offset[0]);
 		float tmp = fabsf(offset[1]);
 		if(tmp > max){max = tmp; j = 1;}
@@ -884,9 +884,9 @@ int ray(vec *hit_vec, const uint depth, const vec vec_start_pos)
 		const float multiplier = dist_to_start / lookdir[j];
         // too far out (or not in the right direction), don't bother
 		if(multiplier > depth || (hit != -1 && multiplier > bestdist) || multiplier < 0.f){continue;}
-		// Might end up taking all 222 of those cycles below... :/
-		// At least better than what it was originally though
-		// And with enough out of range there's still a chance average comes out under
+        // Might end up taking all 222 of those cycles below... :/
+        // At least better than what it was originally though
+        // And with enough out of range there's still a chance average comes out under
 		{
 			float pos[] = {start_pos[0] + (lookdir[0] * multiplier), start_pos[1] + (lookdir[1] * multiplier), start_pos[2] + (lookdir[2] * multiplier)};
 			if (pos[0] > g.voxels[i].x + 1.5f || pos[0] < g.voxels[i].x - 1.5f ||
