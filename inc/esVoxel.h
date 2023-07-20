@@ -50,7 +50,6 @@ void shadeVoxel(GLint* position, GLint* projection, GLint* view, GLint* voxel, G
 //*************************************
 // UTILITY CODE
 //*************************************
-
 GLuint esRand(const GLuint min, const GLuint max)
 {
     return (rand()%(max+1-min))+min;
