@@ -655,7 +655,7 @@ void defaultState(const uint type)
     if(g.num_voxels == 0){g.num_voxels = 1;}
 }
 
-// convert old state file to new compressed one
+// load old state file (to save as new state file)
 typedef struct {
     uint num_voxels;
     vec voxels[max_voxels];
@@ -830,16 +830,11 @@ uint loadUncompressedState()
 
 // render state id's
 GLint projection_id;
-GLint modelview_id;
 GLint view_id;
 GLint voxel_id;
 GLint position_id;
-GLint lightvoxel_id;
-GLint color_id;
-GLint opacity_id;
 GLint normal_id;
 GLint texcoord_id;
-GLint texoffset_id;
 GLint sampler_id;
 
 // render state matrices
