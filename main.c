@@ -828,6 +828,84 @@ int drawText(SDL_Surface* o, const char* s, Uint32 x, Uint32 y, Uint8 colour)
     return dr.x;
 }
 
+int lenText(const char* s)
+{
+    Uint32 x = 0;
+    static const Uint32 m = 1;
+    const Uint32 len = strlen(s);
+    for(Uint32 i = 0; i < len; i++)
+    {
+        if(s[i] == 'A'){     x += 7+m;}
+        else if(s[i] == 'B'){x += 6+m;}
+        else if(s[i] == 'C'){x += 6+m;}
+        else if(s[i] == 'D'){x += 7+m;}
+        else if(s[i] == 'E'){x += 5+m;}
+        else if(s[i] == 'F'){x += 5+m;}
+        else if(s[i] == 'G'){x += 7+m;}
+        else if(s[i] == 'H'){x += 7+m;}
+        else if(s[i] == 'I'){x += 4+m;}
+        else if(s[i] == 'J'){x += 5+m;}
+        else if(s[i] == 'K'){x += 6+m;}
+        else if(s[i] == 'L'){x += 5+m;}
+        else if(s[i] == 'M'){x += 9+m;}
+        else if(s[i] == 'N'){x += 6+m;}
+        else if(s[i] == 'O'){x += 7+m;}
+        else if(s[i] == 'P'){x += 6+m;}
+        else if(s[i] == 'Q'){x += 7+m;}
+        else if(s[i] == 'R'){x += 7+m;}
+        else if(s[i] == 'S'){x += 6+m;}
+        else if(s[i] == 'T'){x += 6+m;}
+        else if(s[i] == 'U'){x += 7+m;}
+        else if(s[i] == 'V'){x += 6+m;}
+        else if(s[i] == 'W'){x += 10+m;}
+        else if(s[i] == 'X'){x += 6+m;}
+        else if(s[i] == 'Y'){x += 6+m;}
+        else if(s[i] == 'Z'){x += 6+m;}
+        else if(s[i] == 'a'){x += 6+m;}
+        else if(s[i] == 'b'){x += 6+m;}
+        else if(s[i] == 'c'){x += 5+m;}
+        else if(s[i] == 'd'){x += 6+m;}
+        else if(s[i] == 'e'){x += 6+m;}
+        else if(s[i] == 'f'){x += 3+m;}
+        else if(s[i] == 'g'){x += 6+m;}
+        else if(s[i] == 'h'){x += 6+m;}
+        else if(s[i] == 'i'){x += 2+m;}
+        else if(s[i] == 'j'){x += 3+m;}
+        else if(s[i] == 'k'){x += 6+m;}
+        else if(s[i] == 'l'){x += 2+m;}
+        else if(s[i] == 'm'){x += 10+m;}
+        else if(s[i] == 'n'){x += 6+m;}
+        else if(s[i] == 'o'){x += 6+m;}
+        else if(s[i] == 'p'){x += 6+m;}
+        else if(s[i] == 'q'){x += 6+m;}
+        else if(s[i] == 'r'){x += 4+m;}
+        else if(s[i] == 's'){x += 5+m;}
+        else if(s[i] == 't'){x += 4+m;}
+        else if(s[i] == 'u'){x += 6+m;}
+        else if(s[i] == 'v'){x += 6+m;}
+        else if(s[i] == 'w'){x += 8+m;}
+        else if(s[i] == 'x'){x += 6+m;}
+        else if(s[i] == 'y'){x += 6+m;}
+        else if(s[i] == 'z'){x += 5+m;}
+        else if(s[i] == '0'){x += 6+m;}
+        else if(s[i] == '1'){x += 4+m;}
+        else if(s[i] == '2'){x += 6+m;}
+        else if(s[i] == '3'){x += 6+m;}
+        else if(s[i] == '4'){x += 6+m;}
+        else if(s[i] == '5'){x += 6+m;}
+        else if(s[i] == '6'){x += 6+m;}
+        else if(s[i] == '7'){x += 6+m;}
+        else if(s[i] == '8'){x += 6+m;}
+        else if(s[i] == '9'){x += 6+m;}
+        else if(s[i] == ':'){x += 2+m;}
+        else if(s[i] == '.'){x += 2+m;}
+        else if(s[i] == '+'){x += 7+m;}
+        else if(s[i] == '-'){x += 7+m;}
+        else if(s[i] == ' '){x += 2+m;}
+    }
+    return x;
+}
+
 //*************************************
 // update & render
 //*************************************
@@ -1429,6 +1507,7 @@ void drawHud()
     // fps
     char tmp[16];
     sprintf(tmp, "%u", g_fps);
+    SDL_FillRect(sHud, &(SDL_Rect){0, 0, lenText(tmp)+8, 19}, 0xCC000000);
     drawText(sHud, tmp, 4, 4, 2);
     // center hud
     const int top = winh2-(11*10);
