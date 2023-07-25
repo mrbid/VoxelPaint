@@ -86,6 +86,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
+const char appVersion[] = "v1.7";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -634,9 +635,21 @@ void printAttrib(SDL_GLattr attr, char* name)
     SDL_GL_GetAttribute(attr, &i);
     printf("%s: %i\n", name, i);
 }
+SDL_Surface* SDL_RGBA32Surface(Uint32 w, Uint32 h)
+{
+    return SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+}
+void drawHud();
 void doPerspective()
 {
     glViewport(0, 0, winw, winh);
+    if(winw > 590 && winh > 250)
+    {
+        SDL_FreeSurface(sHud);
+        sHud = SDL_RGBA32Surface(winw, winh);
+        drawHud();
+        hudmap = esLoadTextureA(winw, winh, sHud->pixels, 0);
+    }
     ww = (float)winw;
     wh = (float)winh;
     mIdent(&projection);
@@ -653,6 +666,165 @@ SDL_Surface* surfaceFromData(const Uint32* data, Uint32 w, Uint32 h)
     SDL_Surface* s = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
     memcpy(s->pixels, data, s->pitch*h);
     return s;
+}
+forceinline Uint32 getpixel(const SDL_Surface *surface, Uint32 x, Uint32 y)
+{
+    const Uint8 *p = (Uint8*)surface->pixels + y * surface->pitch + x * surface->format->BytesPerPixel;
+    return *(Uint32*)p;
+}
+forceinline void setpixel(SDL_Surface *surface, Uint32 x, Uint32 y, Uint32 pix)
+{
+    const Uint8* pixel = (Uint8*)surface->pixels + (y * surface->pitch) + (x * surface->format->BytesPerPixel);
+    *((Uint32*)pixel) = pix;
+}
+void replaceColour(SDL_Surface* surf, SDL_Rect r, Uint32 old_color, Uint32 new_color)
+{
+    const Uint32 max_y = r.y+r.h;
+    const Uint32 max_x = r.x+r.w;
+    for(Uint32 y = r.y; y < max_y; ++y)
+        for(Uint32 x = r.x; x < max_x; ++x)
+            if(getpixel(surf, x, y) == old_color){setpixel(surf, x, y, new_color);}
+}
+void line(SDL_Surface *surface, Uint32 x0, Uint32 y0, Uint32 x1, Uint32 y1, Uint32 colour)
+{
+    const int dx = abs((Sint32)x1 - (Sint32)x0), sx = x0 < x1 ? 1 : -1;
+    const int dy = abs((Sint32)y1 - (Sint32)y0), sy = y0 < y1 ? 1 : -1;
+    int err = (dx > dy ? dx : -dy) / 2, e2;
+    while(1)
+    {
+        setpixel(surface, x0, y0, colour);
+        if(x0 == x1 && y0 == y1){break;}
+        e2 = err;
+        if(e2 > -dx){err -= dy; x0 += sx;}
+        if(e2 < dy){err += dx; y0 += sy;}
+    }
+}
+
+//*************************************
+// Simple Font
+//*************************************
+int drawText(SDL_Surface* o, const char* s, Uint32 x, Uint32 y, Uint8 colour)
+{
+    static const Uint8 font_map[] = {255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,0,0,0,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,0,255,255,0,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,255,255,255,0,0,0,0,0,0,255,0,0,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,255,255,255,0,0,0,0,255,255,255,0,255,0,0,0,0,0,255,0,0,0,0,0,255,255,0,0,0,0,0,255,0,0,0,0,0,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,0,0,255,255,255,255,0,0,255,0,0,0,0,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,255,255,0,255,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,255,0,0,0,0,255,255,0,0,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,0,0,255,0,0,255,255,255,0,0,255,255,255,0,0,255,255,255,255,255,0,0,255,255,255,0,0,255,0,0,255,255,255,255,0,0,0,0,255,0,0,255,0,0,255,255,255,0,0,0,255,255,255,0,0,0,0,0,0,255,255,0,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,0,0,255,255,0,0,255,0,0,255,255,255,255,255,255,0,0,255,255,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,255,255,0,0,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,0,0,0,0,0,255,0,0,255,255,0,0,0,0,255,255,0,0,255,255,255,0,0,255,255,0,0,255,255,255,0,0,255,255,255,255,255,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,255,255,255,255,255,0,255,255,255,255,255,255,255,255,0,0,255,0,0,255,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,255,0,0,0,0,255,255,255,0,0,255,255,255,0,0,255,255,255,255,255,0,0,255,255,255,0,0,255,0,0,255,255,255,255,0,0,0,0,0,0,255,255,0,0,255,255,255,0,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,0,0,255,255,0,0,255,0,0,255,255,255,255,255,255,0,0,255,255,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,255,0,0,0,0,255,255,0,0,0,0,255,255,255,255,0,0,0,255,0,0,0,0,255,0,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,0,255,255,0,0,0,0,0,0,0,255,0,255,0,0,0,0,0,0,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,255,255,0,0,255,0,0,255,255,255,255,255,0,0,255,255,255,255,0,0,255,255,0,0,0,255,255,0,0,255,255,255,0,0,255,255,255,255,255,255,255,0,0,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,255,255,0,255,255,255,255,255,255,255,255,0,0,255,0,0,255,0,0,0,0,0,255,0,0,255,255,255,255,0,0,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,255,255,0,0,0,0,0,0,0,255,0,0,255,255,255,255,0,0,0,0,0,255,255,255,0,0,255,255,255,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,0,0,255,255,0,0,255,0,0,0,0,0,255,255,255,0,0,255,255,0,0,255,255,255,0,0,255,0,0,0,0,255,255,0,0,255,0,0,255,0,0,255,255,255,0,0,255,255,255,0,0,0,0,255,255,255,0,0,0,255,255,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,255,0,0,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,255,255,255,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,255,0,0,0,0,255,255,0,0,255,0,0,255,255,255,255,0,0,255,255,255,0,0,0,255,255,0,255,0,0,255,255,0,0,0,0,255,0,0,0,0,0,255,255,255,255,0,0,255,255,0,0,0,0,255,0,0,255,255,0,0,0,0,255,255,255,255,255,0,255,255,255,255,255,255,255,255,0,0,255,0,0,255,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,255,0,0,0,0,255,255,255,0,0,255,255,255,0,0,255,255,0,0,0,0,0,255,255,255,0,0,255,0,0,255,255,255,255,0,0,0,0,0,255,255,255,0,0,255,255,255,0,255,255,0,0,255,255,0,0,0,255,255,0,0,0,0,0,255,255,255,0,0,0,0,0,0,0,255,0,0,255,255,255,0,0,0,0,0,0,0,255,255,255,0,0,0,0,0,255,255,0,0,255,255,0,0,255,255,255,0,0,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,255,255,255,0,0,255,255,255,255,0,0,255,255,255,0,0,0,255,255,255,0,0,0,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,0,0,0,0,0,0,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,255,255,0,0,255,255,0,0,255,0,0,0,0,255,0,0,255,0,0,255,0,0,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,0,0,255,255,0,0,255,0,0,255,255,255,0,0,255,255,255,255,255,255,0,0,0,255,255,0,0,255,255,255,255,255,0,0,0,0,255,255,0,0,255,255,255,0,0,255,0,0,255,255,0,0,255,0,0,0,0,0,255,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,255,0,0,0,0,255,255,255,0,0,255,255,255,0,0,255,255,255,0,0,0,0,255,255,255,0,0,255,0,0,255,255,255,255,0,0,0,0,0,0,255,255,0,0,255,255,255,0,255,255,255,255,255,255,0,0,0,255,255,255,0,0,0,0,255,255,255,0,0,0,0,255,255,255,255,0,0,255,255,255,0,0,0,0,255,0,0,255,255,255,255,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,0,0,255,0,0,0,0,255,255,0,0,0,255,255,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,0,0,0,255,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,0,0,0,0,255,255,0,0,255,255,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,0,0,255,255,0,0,255,255,255,255,255,255,255,0,0,0,0,0,0,0,0,255,255,255,255,0,0,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,255,0,0,255,255,255,255,255,255,255,0,255,255,255,255,255,255,255,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,0,0,255,0,0,255,255,255,0,0,255,255,255,0,0,255,255,255,0,0,0,0,255,255,255,0,0,255,0,0,255,255,255,255,0,0,0,0,255,0,0,255,0,0,255,255,255,0,255,255,255,255,255,255,0,0,0,255,255,255,255,0,0,0,255,255,255,0,0,0,0,255,255,255,255,0,0,255,255,255,0,0,0,0,255,255,0,0,255,255,255,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,0,0,255,255,0,0,255,255,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,0,0,0,0,255,255,255,255,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,255,0,0,255,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,255,255,0,0,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,0,0,255,255,0,0,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,0,0,255,255,0,0,255,0,0,255,0,0,255,255,255,255,0,0,255,255,0,0,255,255,255,0,0,255,0,0,255,255,0,0,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,255,255,0,0,0,0,0,0,255,255,255,0,255,255,255,255,255,255,255,0,0,255,255,255,0,0,0,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,255,255,0,0,0,0,0,0,0,255,255,255,255,0,0,0,0,0,0,0,0,255,255,255,0,0,0,0,0,0,0,0,0,0,255,0,0,255,255,0,0,0,0,0,0,0,0,255,255,255,255,255,255,0,0,0,255,255,255,255,0,255,0,0,0,0,0,255,0,0,255,255,255,255,255,0,0,0,0,0,255,0,0,255,255,255,0,0,0,0,0,0,0,255,255,255,0,0,255,255,255,0,0,0,0,0,255,255,255,0,0,255,255,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,0,255,0,0,0,0,0,0,0,255,255,255,0,0,0,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,255,255,0,0,0,0,0,0,255,255,0,0,255,255,0,0,0,0,255,255,0,0,255,0,0,0,0,255,0,0,0,0,0,255,255,0,0,0,0,0,0,0,255,255,0,0,0,0,255,255,0,0,0,255,0,0,0,0,0,255,255,0,0,255,255,255,0,0,255,255,0,0,255,0,0,255,255,0,0,255,255,0,0,255,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,255,255,255,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,255,255,255,0,0,255,255,255,0,0,0,0,255,255,0,0,0,0,255,0,0,0,0,255,255,255,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,0,0,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,0,0,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255};
+    static const Uint32 m = 1;
+    static SDL_Surface* font_black = NULL;
+    static SDL_Surface* font_white = NULL;
+    static SDL_Surface* font_aqua = NULL;
+    static SDL_Surface* font_gold = NULL;
+    static SDL_Surface* font_cia = NULL;
+    if(font_black == NULL)
+    {
+        font_black = SDL_RGBA32Surface(380, 11);
+        for(int y = 0; y < font_black->h; y++)
+        {
+            for(int x = 0; x < font_black->w; x++)
+            {
+                const Uint8 c = font_map[(y*font_black->w)+x];
+                setpixel(font_black, x, y, SDL_MapRGBA(font_black->format, c, c, c, 255-c));
+            }
+        }
+        font_white = SDL_RGBA32Surface(380, 11);
+        SDL_BlitSurface(font_black, &font_black->clip_rect, font_white, &font_white->clip_rect);
+        replaceColour(font_white, font_white->clip_rect, 0xFF000000, 0xFFFFFFFF);
+        font_aqua = SDL_RGBA32Surface(380, 11);
+        SDL_BlitSurface(font_black, &font_black->clip_rect, font_aqua, &font_aqua->clip_rect);
+        replaceColour(font_aqua, font_aqua->clip_rect, 0xFF000000, 0xFFFFFF00);
+        font_gold = SDL_RGBA32Surface(380, 11);
+        SDL_BlitSurface(font_black, &font_black->clip_rect, font_gold, &font_gold->clip_rect);
+        replaceColour(font_gold, font_gold->clip_rect, 0xFF000000, 0xFF00BFFF);
+        font_cia = SDL_RGBA32Surface(380, 11);
+        SDL_BlitSurface(font_black, &font_black->clip_rect, font_cia, &font_cia->clip_rect);
+        replaceColour(font_cia, font_cia->clip_rect, 0xFF000000, 0xFF97C920);
+        // #20c997(0xFF97C920) #00FF41(0xFF41FF00) #61d97c(0xFF7CD961) #51d4e9(0xFFE9D451)
+    }
+    if(s[0] == '*' && s[1] == 'K') // signal cleanup
+    {
+        SDL_FreeSurface(font_black);
+        SDL_FreeSurface(font_white);
+        SDL_FreeSurface(font_aqua);
+        SDL_FreeSurface(font_gold);
+        SDL_FreeSurface(font_cia);
+        font_black = NULL;
+        return 0;
+    }
+    SDL_Surface* font = font_black;
+    if(     colour == 1){font = font_white;}
+    else if(colour == 2){font = font_aqua;}
+    else if(colour == 3){font = font_gold;}
+    else if(colour == 4){font = font_cia;}
+    SDL_Rect dr = {x, y, 0, 0};
+    const Uint32 len = strlen(s);
+    for(Uint32 i = 0; i < len; i++)
+    {
+        if(s[i] == 'A'){     SDL_BlitSurface(font, &(SDL_Rect){0,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'B'){SDL_BlitSurface(font, &(SDL_Rect){7,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'C'){SDL_BlitSurface(font, &(SDL_Rect){13,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'D'){SDL_BlitSurface(font, &(SDL_Rect){19,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'E'){SDL_BlitSurface(font, &(SDL_Rect){26,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'F'){SDL_BlitSurface(font, &(SDL_Rect){31,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'G'){SDL_BlitSurface(font, &(SDL_Rect){36,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'H'){SDL_BlitSurface(font, &(SDL_Rect){43,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'I'){SDL_BlitSurface(font, &(SDL_Rect){50,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == 'J'){SDL_BlitSurface(font, &(SDL_Rect){54,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'K'){SDL_BlitSurface(font, &(SDL_Rect){59,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'L'){SDL_BlitSurface(font, &(SDL_Rect){65,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'M'){SDL_BlitSurface(font, &(SDL_Rect){70,0,9,9}, o, &dr); dr.x += 9+m;}
+        else if(s[i] == 'N'){SDL_BlitSurface(font, &(SDL_Rect){79,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'O'){SDL_BlitSurface(font, &(SDL_Rect){85,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'P'){SDL_BlitSurface(font, &(SDL_Rect){92,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'Q'){SDL_BlitSurface(font, &(SDL_Rect){98,0,7,11}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'R'){SDL_BlitSurface(font, &(SDL_Rect){105,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'S'){SDL_BlitSurface(font, &(SDL_Rect){112,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'T'){SDL_BlitSurface(font, &(SDL_Rect){118,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'U'){SDL_BlitSurface(font, &(SDL_Rect){124,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == 'V'){SDL_BlitSurface(font, &(SDL_Rect){131,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'W'){SDL_BlitSurface(font, &(SDL_Rect){137,0,10,9}, o, &dr); dr.x += 10+m;}
+        else if(s[i] == 'X'){SDL_BlitSurface(font, &(SDL_Rect){147,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'Y'){SDL_BlitSurface(font, &(SDL_Rect){153,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'Z'){SDL_BlitSurface(font, &(SDL_Rect){159,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'a'){SDL_BlitSurface(font, &(SDL_Rect){165,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'b'){SDL_BlitSurface(font, &(SDL_Rect){171,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'c'){SDL_BlitSurface(font, &(SDL_Rect){177,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 'd'){SDL_BlitSurface(font, &(SDL_Rect){182,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'e'){SDL_BlitSurface(font, &(SDL_Rect){188,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'f'){SDL_BlitSurface(font, &(SDL_Rect){194,0,4,9}, o, &dr); dr.x += 3+m;}
+        else if(s[i] == 'g'){SDL_BlitSurface(font, &(SDL_Rect){198,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'h'){SDL_BlitSurface(font, &(SDL_Rect){204,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'i'){SDL_BlitSurface(font, &(SDL_Rect){210,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == 'j'){SDL_BlitSurface(font, &(SDL_Rect){212,0,3,11}, o, &dr); dr.x += 3+m;}
+        else if(s[i] == 'k'){SDL_BlitSurface(font, &(SDL_Rect){215,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'l'){SDL_BlitSurface(font, &(SDL_Rect){221,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == 'm'){SDL_BlitSurface(font, &(SDL_Rect){223,0,10,9}, o, &dr); dr.x += 10+m;}
+        else if(s[i] == 'n'){SDL_BlitSurface(font, &(SDL_Rect){233,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'o'){SDL_BlitSurface(font, &(SDL_Rect){239,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'p'){SDL_BlitSurface(font, &(SDL_Rect){245,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'q'){SDL_BlitSurface(font, &(SDL_Rect){251,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'r'){SDL_BlitSurface(font, &(SDL_Rect){257,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == 's'){SDL_BlitSurface(font, &(SDL_Rect){261,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == 't'){SDL_BlitSurface(font, &(SDL_Rect){266,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == 'u'){SDL_BlitSurface(font, &(SDL_Rect){270,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'v'){SDL_BlitSurface(font, &(SDL_Rect){276,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'w'){SDL_BlitSurface(font, &(SDL_Rect){282,0,8,9}, o, &dr); dr.x += 8+m;}
+        else if(s[i] == 'x'){SDL_BlitSurface(font, &(SDL_Rect){290,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'y'){SDL_BlitSurface(font, &(SDL_Rect){296,0,6,11}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == 'z'){SDL_BlitSurface(font, &(SDL_Rect){302,0,5,9}, o, &dr); dr.x += 5+m;}
+        else if(s[i] == '0'){SDL_BlitSurface(font, &(SDL_Rect){307,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '1'){SDL_BlitSurface(font, &(SDL_Rect){313,0,4,9}, o, &dr); dr.x += 4+m;}
+        else if(s[i] == '2'){SDL_BlitSurface(font, &(SDL_Rect){317,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '3'){SDL_BlitSurface(font, &(SDL_Rect){323,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '4'){SDL_BlitSurface(font, &(SDL_Rect){329,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '5'){SDL_BlitSurface(font, &(SDL_Rect){335,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '6'){SDL_BlitSurface(font, &(SDL_Rect){341,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '7'){SDL_BlitSurface(font, &(SDL_Rect){347,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '8'){SDL_BlitSurface(font, &(SDL_Rect){353,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == '9'){SDL_BlitSurface(font, &(SDL_Rect){359,0,6,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == ':'){SDL_BlitSurface(font, &(SDL_Rect){365,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == '.'){SDL_BlitSurface(font, &(SDL_Rect){367,0,2,9}, o, &dr); dr.x += 2+m;}
+        else if(s[i] == '+'){SDL_BlitSurface(font, &(SDL_Rect){369,0,7,9}, o, &dr); dr.x += 7+m;}
+        else if(s[i] == '-'){dr.x++; SDL_BlitSurface(font, &(SDL_Rect){376,0,4,9}, o, &dr); dr.x += 6+m;}
+        else if(s[i] == ' '){dr.x += 2+m;}
+    }
+    return dr.x;
 }
 
 //*************************************
@@ -988,6 +1160,7 @@ void main_loop()
                 SDL_HideWindow(wnd);
                 saveState();
                 SDL_FreeSurface(s_icon);
+                SDL_FreeSurface(sHud);
                 SDL_GL_DeleteContext(glc);
                 SDL_DestroyWindow(wnd);
                 SDL_Quit();
@@ -1155,6 +1328,33 @@ void main_loop()
 // main render
 //*************************************
 
+    // voxels
+    static uint sswi = 0;
+    if(sswi == 0)
+    {
+        shadeVoxel(&position_id, &projection_id, &view_id, &voxel_id, &normal_id, &texcoord_id, &sampler_id);
+        glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
+
+        glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.vid);
+        glVertexAttribPointer(position_id, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(position_id);
+
+        glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.nid);
+        glVertexAttribPointer(normal_id, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(normal_id);
+
+        glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.tid);
+        glVertexAttribPointer(texcoord_id, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(texcoord_id);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texmap);
+        glUniform1i(sampler_id, 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mdlVoxel.iid);
+        sswi = 1;
+    }
+
     // render voxels
     ipp = g.pp; // inverse player position (setting global 'ipp' here is perfect)
     vInv(&ipp); // <--
@@ -1177,10 +1377,119 @@ void main_loop()
         glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
     glEnable(GL_DEPTH_TEST);
 
+    // hud
+    if(focus_mouse == 0)
+    {
+        shadeHud(&position_id, &texcoord_id, &sampler_id);
+        glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, hudmap);
+        glUniform1i(sampler_id, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, mdlPlane.vid);
+        glVertexAttribPointer(position_id, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(position_id);
+        glBindBuffer(GL_ARRAY_BUFFER, mdlPlane.tid);
+        glVertexAttribPointer(texcoord_id, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(texcoord_id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mdlPlane.iid);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+            glDrawElements(GL_TRIANGLES, hud_numind, GL_UNSIGNED_BYTE, 0);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        sswi = 0;
+    }
+
 //*************************************
 // swap buffers / display render
 //*************************************
     SDL_GL_SwapWindow(wnd);
+}
+void drawHud()
+{
+    SDL_FillRect(sHud, &sHud->clip_rect, 0x00000000);
+
+    // pixel crosshair
+    // setpixel(sHud, winw2, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2+1, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2-1, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2, winh2+1, 0xFFFFFF00);
+    // setpixel(sHud, winw2, winh2-1, 0xFFFFFF00);
+    // setpixel(sHud, winw2+2, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2-2, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2, winh2+2, 0xFFFFFF00);
+    // setpixel(sHud, winw2, winh2-2, 0xFFFFFF00);
+    // setpixel(sHud, winw2+3, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2-3, winh2, 0xFFFFFF00);
+    // setpixel(sHud, winw2, winh2+3, 0xFFFFFF00);
+    // setpixel(sHud, winw2, winh2-3, 0xFFFFFF00);
+    
+    const int winw24 = winw2/4;
+    const int wn = winw2-(winw24);
+    const int hn = winh2-(winw24);
+    const int top = winh2-(11*10);
+    int left = (winw2-wn)+11;
+    if(wn > 250){left += wn-250;}
+    int right = wn*2;
+    if(right > 500){right = 500;}
+    SDL_FillRect(sHud, &(SDL_Rect){left-11, top, right, 230}, 0xCC000000);
+    int a = drawText(sHud, "Voxel Paint", winw2-25, top+11, 3);
+    a = drawText(sHud, appVersion, left+right-45, top+11, 4);
+    a = drawText(sHud, "mrbid.github.io", left, top+11, 4);
+
+    a = drawText(sHud, "WASD ", left, top+(11*3), 2);
+    drawText(sHud, "Move around based on relative orientation to X and Y.", a, top+(11*3), 1);
+    a = drawText(sHud, "SPACE", left, top+(11*4), 2);
+    a = drawText(sHud, " + ", a, top+(11*4), 4);
+    a = drawText(sHud, "L-SHIFT ", a, top+(11*4), 2);
+    drawText(sHud, "Move up and down relative Z.", a, top+(11*4), 1);
+    a = drawText(sHud, "Left Click", left, top+(11*5), 2);
+    a = drawText(sHud, " or ", a, top+(11*5), 3);
+    a = drawText(sHud, "R-SHIFT ", a, top+(11*5), 2);
+    drawText(sHud, "Place node.", a, top+(11*5), 1);
+    a = drawText(sHud, "Right Click", left, top+(11*6), 2);
+    a = drawText(sHud, " or ", a, top+(11*6), 3);
+    a = drawText(sHud, "R-CTRL ", a, top+(11*6), 2);
+    drawText(sHud, "Delete node.", a, top+(11*6), 1);
+    a = drawText(sHud, "E", left, top+(11*7), 2);
+    a = drawText(sHud, " or ", a, top+(11*7), 3);
+    a = drawText(sHud, "F", a, top+(11*7), 2);
+    a = drawText(sHud, " or ", a, top+(11*7), 3);
+    a = drawText(sHud, "Mouse4 ", a, top+(11*7), 2);
+    drawText(sHud, "Toggle player fast speed on and off.", a, top+(11*7), 1);
+    a = drawText(sHud, "1-7 ", left, top+(11*8), 2);
+    drawText(sHud, "Change move speed for selected fast state.", a, top+(11*8), 1);
+    a = drawText(sHud, "Q", left, top+(11*9), 2);
+    a = drawText(sHud, " or ", a, top+(11*9), 3);
+    a = drawText(sHud, "Middle Click ", a, top+(11*9), 2);
+    drawText(sHud, "Clone texture of pointed node.", a, top+(11*9), 1);
+    a = drawText(sHud, "Mouse Scroll", left, top+(11*10), 2);
+    a = drawText(sHud, " or ", a, top+(11*10), 3);
+    a = drawText(sHud, "Slash", a, top+(11*10), 2);
+    a = drawText(sHud, " + ", a, top+(11*10), 4);
+    a = drawText(sHud, "Quote", a, top+(11*10), 2);
+    a = drawText(sHud, " or ", a, top+(11*10), 3);
+    a = drawText(sHud, "X", a, top+(11*10), 2);
+    a = drawText(sHud, " + ", a, top+(11*10), 4);
+    a = drawText(sHud, "C ", a, top+(11*10), 2);
+    drawText(sHud, "Change texture of pointed node.", a, top+(11*10), 1);
+    a = drawText(sHud, "T ", left, top+(11*11), 2);
+    drawText(sHud, "Resets view and position matrix.", a, top+(11*11), 1);
+    a = drawText(sHud, "R or G ", left, top+(11*12), 2);
+    drawText(sHud, "Gravity on/off.", a, top+(11*12), 1);
+    a = drawText(sHud, "F3 ", left, top+(11*13), 2);
+    drawText(sHud, "Save. (auto saves on exit or idle for more than 3 minutes)", a, top+(11*13), 1);
+    a = drawText(sHud, "F8 ", left, top+(11*14), 2);
+    drawText(sHud, "Load. (will erase what you have done since the last save)", a, top+(11*14), 1);
+#ifdef __linux__
+    a = drawText(sHud, "F10 ", left, top+(11*15), 2);
+    drawText(sHud, "Export the VoxelPaint data to a zip file in $HOME/Documents.", a, top+(11*15), 1);
+#endif
+    a = drawText(sHud, "Arrow Keys ", left, top+(11*16), 2);
+    drawText(sHud, "can be used to move the view around.", a, top+(11*16), 1);
+    a = drawText(sHud, "ESCAPE ", left, top+(11*17), 3);
+    drawText(sHud, "Release mouse focus.", a, top+(11*17), 1);
+    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*19), 3);
 }
 
 //*************************************
@@ -1313,39 +1622,19 @@ int main(int argc, char** argv)
 //*************************************
     doPerspective();
     makeVoxel();
+    makeHud();
 
 //*************************************
 // configure render options
 //*************************************
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
-    glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 #ifdef SKYBLUE
-    glClearColor(0.3f, 0.745f, 0.8863f, 0.0f);
+    glClearColor(0.3f, 0.745f, 0.8863f, 0.f);
 #else
-    glClearColor(0.f, 0.f, 0.f, 0.0f);
+    glClearColor(0.f, 0.f, 0.f, 0.f);
 #endif
-
-    shadeVoxel(&position_id, &projection_id, &view_id, &voxel_id, &normal_id, &texcoord_id, &sampler_id);
-    glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
-
-    glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.vid);
-    glVertexAttribPointer(position_id, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(position_id);
-
-    glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.nid);
-    glVertexAttribPointer(normal_id, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(normal_id);
-
-    glBindBuffer(GL_ARRAY_BUFFER, mdlVoxel.tid);
-    glVertexAttribPointer(texcoord_id, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(texcoord_id);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texmap);
-    glUniform1i(sampler_id, 0);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mdlVoxel.iid);
 
 //*************************************
 // init stuff
@@ -1399,6 +1688,11 @@ int main(int argc, char** argv)
             g.voxels[i].z = roundf(g.voxels[i].z);
         }
     }
+
+    // hud buffer
+    sHud = SDL_RGBA32Surface(winw, winh);
+    drawHud();
+    hudmap = esLoadTextureA(winw, winh, sHud->pixels, 0);
 
 //*************************************
 // execute update / render loop
