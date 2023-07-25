@@ -1481,14 +1481,14 @@ void drawHud()
     a = drawText(sHud, "T ", left, top+(11*11), 2);
     drawText(sHud, "Resets view and position matrix.", a, top+(11*11), 1);
     a = drawText(sHud, "R or G ", left, top+(11*12), 2);
-    drawText(sHud, "Gravity on/off.", a, top+(11*12), 1);
+    drawText(sHud, "Toggle gravity on and off.", a, top+(11*12), 1);
     a = drawText(sHud, "F3 ", left, top+(11*13), 2);
-    drawText(sHud, "Save. (auto saves on exit or idle for more than 3 minutes)", a, top+(11*13), 1);
+    drawText(sHud, "Save. Will auto save on exit or idle for more than 3 minutes anyway.", a, top+(11*13), 1);
     a = drawText(sHud, "F8 ", left, top+(11*14), 2);
-    drawText(sHud, "Load. (will erase what you have done since the last save)", a, top+(11*14), 1);
+    drawText(sHud, "Load. Will erase what you have done since the last save.", a, top+(11*14), 1);
 #ifdef __linux__
     a = drawText(sHud, "F10 ", left, top+(11*15), 2);
-    drawText(sHud, "Export the VoxelPaint data to a zip file in $HOME/Documents.", a, top+(11*15), 1);
+    drawText(sHud, "Export the VoxelPaint data to a zip file in HOME Documents.", a, top+(11*15), 1);
 #endif
     a = drawText(sHud, "Arrow Keys ", left, top+(11*16), 2);
     drawText(sHud, "can be used to move the view around.", a, top+(11*16), 1);
