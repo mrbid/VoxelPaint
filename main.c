@@ -644,7 +644,7 @@ void drawHud();
 void doPerspective()
 {
     glViewport(0, 0, winw, winh);
-    if(winw > 590 && winh > 250)
+    if(winw > 500 && winh > 250)
     {
         SDL_FreeSurface(sHud);
         sHud = SDL_RGBA32Surface(winw, winh);
@@ -1408,6 +1408,7 @@ void main_loop()
 }
 void drawHud()
 {
+    // clear cpu hud before rendering to it
     SDL_FillRect(sHud, &sHud->clip_rect, 0x00000000);
 
     // pixel crosshair
@@ -1425,23 +1426,17 @@ void drawHud()
     // setpixel(sHud, winw2, winh2+3, 0xFFFFFF00);
     // setpixel(sHud, winw2, winh2-3, 0xFFFFFF00);
 
+    // fps
     char tmp[16];
     sprintf(tmp, "%u", g_fps);
     drawText(sHud, tmp, 4, 4, 2);
-    
-    const int winw24 = winw2/4;
-    const int wn = winw2-(winw24);
-    const int hn = winh2-(winw24);
+    // center hud
     const int top = winh2-(11*10);
-    int left = (winw2-wn)+11;
-    if(wn > 250){left += wn-250;}
-    int right = wn*2;
-    if(right > 500){right = 500;}
-    SDL_FillRect(sHud, &(SDL_Rect){left-11, top, right, 230}, 0xCC000000);
+    const int left = winw2-239;
+    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 230}, 0xCC000000);
     int a = drawText(sHud, "Voxel Paint", winw2-27, top+11, 3);
-    a = drawText(sHud, appVersion, left+right-45, top+11, 4);
+    a = drawText(sHud, appVersion, left+455, top+11, 4);
     a = drawText(sHud, "mrbid.github.io", left, top+11, 4);
-
     a = drawText(sHud, "WASD ", left, top+(11*3), 2);
     drawText(sHud, "Move around based on relative orientation to X and Y.", a, top+(11*3), 1);
     a = drawText(sHud, "SPACE", left, top+(11*4), 2);
@@ -1497,6 +1492,8 @@ void drawHud()
     a = drawText(sHud, "ESCAPE ", left, top+(11*17), 3);
     drawText(sHud, "Release mouse focus.", a, top+(11*17), 1);
     drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*19), 3);
+    // flip the new hud to gpu
+    flipHud();
 }
 
 //*************************************
@@ -1717,11 +1714,8 @@ int main(int argc, char** argv)
             timestamp(tmp);
             printf("[%s] %u fps, %u voxels\n", tmp, g_fps, g.num_voxels);
 #endif
-            if(focus_mouse == 0)
-            {
+            if(focus_mouse == 0 && winw > 500 && winh > 250)
                 drawHud();
-                flipHud();
-            }
             fps = 0;
             ft = t+3.f;
         }
