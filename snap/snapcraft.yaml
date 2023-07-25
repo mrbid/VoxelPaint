@@ -1,6 +1,7 @@
 name: voxelpaint
 base: core20
-version: '1.6'
+version: '1.7'
+license: GPL-2.0-only
 summary: Paint in 3D using voxels!
 description: |
   Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
