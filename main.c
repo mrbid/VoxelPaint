@@ -95,6 +95,7 @@ int winw = 1024, winh = 768;
 int winw2 = 512, winh2 = 384;
 float ww, wh;
 float aspect, t = 0.f;
+uint g_fps = 0;
 uint ks[10] = {0};      // keystate
 uint focus_mouse = 0;   // mouse lock
 float ddist = 460.f;    // view distance
@@ -1423,6 +1424,10 @@ void drawHud()
     // setpixel(sHud, winw2-3, winh2, 0xFFFFFF00);
     // setpixel(sHud, winw2, winh2+3, 0xFFFFFF00);
     // setpixel(sHud, winw2, winh2-3, 0xFFFFFF00);
+
+    char tmp[16];
+    sprintf(tmp, "%u", g_fps);
+    drawText(sHud, tmp, 4, 4, 2);
     
     const int winw24 = winw2/4;
     const int wn = winw2-(winw24);
@@ -1697,28 +1702,29 @@ int main(int argc, char** argv)
 //*************************************
 // execute update / render loop
 //*************************************
-#ifdef VERBOSE
     t = fTime();
     uint fps = 0;
     float ft = t+3.f;
-#endif
     while(1)
     {
-#ifdef VERBOSE
         if(t > ft)
         {
+            g_fps = fps/3;
+#ifdef VERBOSE
             char tmp[16];
             timestamp(tmp);
-            printf("[%s] %u fps, %u voxels\n", tmp, fps/3, g.num_voxels);
-            //printf("%f %f %f %f %f %f %f %f %f %f %u\n", g.xrot, g.yrot, g.pp.x, g.pp.y, g.pp.z, g.pp.w, g.ms, g.st, g.lms, g.cms, g.grav);
+            printf("[%s] %u fps, %u voxels\n", tmp, g_fps, g.num_voxels);
+#endif
+            if(focus_mouse == 0)
+            {
+                drawHud();
+                flipHud();
+            }
             fps = 0;
             ft = t+3.f;
         }
-#endif
         main_loop();
-#ifdef VERBOSE
         fps++;
-#endif
     }
     return 0;
 }
