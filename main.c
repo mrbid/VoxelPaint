@@ -1433,7 +1433,7 @@ void drawHud()
     int right = wn*2;
     if(right > 500){right = 500;}
     SDL_FillRect(sHud, &(SDL_Rect){left-11, top, right, 230}, 0xCC000000);
-    int a = drawText(sHud, "Voxel Paint", winw2-25, top+11, 3);
+    int a = drawText(sHud, "Voxel Paint", winw2-27, top+11, 3);
     a = drawText(sHud, appVersion, left+right-45, top+11, 4);
     a = drawText(sHud, "mrbid.github.io", left, top+11, 4);
 
