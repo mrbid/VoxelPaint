@@ -1480,7 +1480,9 @@ void drawHud()
     drawText(sHud, "Change texture of pointed node.", a, top+(11*10), 1);
     a = drawText(sHud, "T ", left, top+(11*11), 2);
     drawText(sHud, "Resets view and position matrix.", a, top+(11*11), 1);
-    a = drawText(sHud, "R or G ", left, top+(11*12), 2);
+    a = drawText(sHud, "R", left, top+(11*12), 2);
+    a = drawText(sHud, " or ", a, top+(11*12), 3);
+    a = drawText(sHud, "G ", a, top+(11*12), 2);
     drawText(sHud, "Toggle gravity on and off.", a, top+(11*12), 1);
     a = drawText(sHud, "F3 ", left, top+(11*13), 2);
     drawText(sHud, "Save. Will auto save on exit or idle for more than 3 minutes anyway.", a, top+(11*13), 1);
