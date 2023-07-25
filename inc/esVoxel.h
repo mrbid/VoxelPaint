@@ -40,9 +40,25 @@ ESModel mdlVoxel;
 GLuint texmap;
 unsigned char tiles[];
 
+const GLfloat hud_vertices[] = {-1,1,0,1,-1,0,1,1,0,-1,-1,0};
+const GLfloat hud_uvmap[] = {0,0, 1,1, 1,0, 0,1};
+const GLubyte hud_indices[] = {0,1,2,0,3,1};
+const GLsizeiptr hud_numind = 6;
+ESModel mdlPlane;
+SDL_Surface* sHud;
+GLuint hudmap;
+
 //*************************************
 // SHADER
 //*************************************
+void makeHud();
+void shadeHud(GLint* position, GLint* texcoord, GLint* sampler);
+void flipHud()
+{
+    glBindTexture(GL_TEXTURE_2D, hudmap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sHud->w, sHud->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, sHud->pixels);
+}
+
 void makeVoxel();
 void shadeVoxel(GLint* position, GLint* projection, GLint* view, GLint* voxel, GLint* normal, GLint* texcoord, GLint* sampler);
 
@@ -77,10 +93,52 @@ GLuint esLoadTexture(const GLuint w, const GLuint h, const unsigned char* data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     return textureId;
 }
+GLuint esLoadTextureA(const GLuint w, const GLuint h, const unsigned char* data, const GLuint linear)
+{
+    GLuint textureId;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    if(linear == 0)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    return textureId;
+}
 
 //*************************************
 // SHADER CODE
 //*************************************
+const GLchar* v0 =
+    "#version 100\n"
+    "attribute vec4 position;\n"
+    "attribute vec2 texcoord;\n"
+    "varying vec2 vtc;\n"
+    "void main()\n"
+    "{\n"
+        "vtc = texcoord;\n"
+        "gl_Position = position;\n"
+    "}\n";
+
+const GLchar* f0 =
+    "#version 100\n"
+    "precision mediump float;\n"
+    "varying vec2 vtc;\n"
+    "uniform sampler2D tex;\n"
+    "void main()\n"
+    "{\n"
+        "gl_FragColor = texture2D(tex, vtc);\n"
+    "}\n";
+
 #ifdef VERTEX_SHADE
 
     const GLchar* v1 =
@@ -184,6 +242,11 @@ GLuint esLoadTexture(const GLuint w, const GLuint h, const unsigned char* data)
 
 //
 
+GLuint shdHud;
+GLint  shdHud_position;
+GLint  shdHud_texcoord;
+GLint  shdHud_sampler;
+
 GLuint shdVoxel;
 GLint  shdVoxel_projection;
 GLint  shdVoxel_view;
@@ -226,7 +289,6 @@ void makeVoxel()
 
     texmap = esLoadTexture(272, 16, tiles);
 }
-
 void shadeVoxel(GLint* position, GLint* projection, GLint* view, GLint* voxel, GLint* normal, GLint* texcoord, GLint* sampler)
 {
     *position = shdVoxel_position;
@@ -238,6 +300,42 @@ void shadeVoxel(GLint* position, GLint* projection, GLint* view, GLint* voxel, G
     *sampler = shdVoxel_sampler;
     glUseProgram(shdVoxel);
 }
+
+//
+
+void makeHud()
+{
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &v0, NULL);
+    glCompileShader(vertexShader);
+
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &f0, NULL);
+    glCompileShader(fragmentShader);
+
+    shdHud = glCreateProgram();
+        glAttachShader(shdHud, vertexShader);
+        glAttachShader(shdHud, fragmentShader);
+    glLinkProgram(shdHud);
+
+    shdHud_position   = glGetAttribLocation(shdHud,  "position");
+    shdHud_texcoord   = glGetAttribLocation(shdHud,  "texcoord");
+    //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+    shdHud_sampler    = glGetUniformLocation(shdHud, "tex");
+
+    esBind(GL_ARRAY_BUFFER, &mdlPlane.vid, &hud_vertices, sizeof(hud_vertices), GL_STATIC_DRAW);
+    esBind(GL_ELEMENT_ARRAY_BUFFER, &mdlPlane.iid, &hud_indices, sizeof(hud_indices), GL_STATIC_DRAW);
+    esBind(GL_ARRAY_BUFFER, &mdlPlane.tid, &hud_uvmap, sizeof(hud_uvmap), GL_STATIC_DRAW);
+}
+void shadeHud(GLint* position, GLint* texcoord, GLint* sampler)
+{
+    *position = shdHud_position;
+    *texcoord = shdHud_texcoord;
+    *sampler = shdHud_sampler;
+    glUseProgram(shdHud);
+}
+
+//
 
 unsigned char tiles[] = { // 272, 16, 3
   "///,,,\060\060\060,,,***\060\060\060\060\060\060\060\060\060\060\060\060\060\060\060\060\060"
