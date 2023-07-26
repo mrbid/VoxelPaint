@@ -830,8 +830,8 @@ int drawText(SDL_Surface* o, const char* s, Uint32 x, Uint32 y, Uint8 colour)
 
 int lenText(const char* s)
 {
-    Uint32 x = 0;
-    static const Uint32 m = 1;
+    int x = 0;
+    static const int m = 1;
     const Uint32 len = strlen(s);
     for(Uint32 i = 0; i < len; i++)
     {
@@ -1679,6 +1679,7 @@ int main(int argc, char** argv)
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
     printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
+    printf("* You can change the mouse sensitivity by passing the new\n  sensitivity as the 1st command line parameter default is\n  0.003 `./vox 0.003`.\n");
     printf("----\n");
 
 //*************************************
