@@ -686,20 +686,6 @@ void replaceColour(SDL_Surface* surf, SDL_Rect r, Uint32 old_color, Uint32 new_c
         for(Uint32 x = r.x; x < max_x; ++x)
             if(getpixel(surf, x, y) == old_color){setpixel(surf, x, y, new_color);}
 }
-void line(SDL_Surface *surface, Uint32 x0, Uint32 y0, Uint32 x1, Uint32 y1, Uint32 colour)
-{
-    const int dx = abs((Sint32)x1 - (Sint32)x0), sx = x0 < x1 ? 1 : -1;
-    const int dy = abs((Sint32)y1 - (Sint32)y0), sy = y0 < y1 ? 1 : -1;
-    int err = (dx > dy ? dx : -dy) / 2, e2;
-    while(1)
-    {
-        setpixel(surface, x0, y0, colour);
-        if(x0 == x1 && y0 == y1){break;}
-        e2 = err;
-        if(e2 > -dx){err -= dy; x0 += sx;}
-        if(e2 < dy){err += dx; y0 += sy;}
-    }
-}
 
 //*************************************
 // Simple Font
