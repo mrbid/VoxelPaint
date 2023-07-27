@@ -656,7 +656,7 @@ void drawHud();
 void doPerspective()
 {
     glViewport(0, 0, winw, winh);
-    if(winw > 500 && winh > 250)
+    if(winw > 500 && winh > 260)
     {
         SDL_FreeSurface(sHud);
         sHud = SDL_RGBA32Surface(winw, winh);
@@ -1052,7 +1052,7 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_v)
                 {
-                    if(sp1.z == sp2.x && sp1.y == sp2.y && sp1.z == sp2.z){break;}
+                    if(sdif.x == 0.f && sdif.y == 0.f && sdif.z == 0.f){break;}
 
                     const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
                     for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
@@ -1247,13 +1247,21 @@ void main_loop()
                     {
                         g.st = g.voxels[lray].w;
                         sp2 = g.voxels[lray];
-                        sp1o = sp1;
-                        sdif = sp2;
-                        vSub(&sdif, sdif, sp1);
-                        sdifo = sdif;
-                        if(sdif.x < 0.f){sp1.x += 0.51f;sdif.x -= 1.01f;}else{sp1.x -= 0.51f;sdif.x += 1.01f;}
-                        if(sdif.y < 0.f){sp1.y += 0.51f;sdif.y -= 1.01f;}else{sp1.y -= 0.51f;sdif.y += 1.01f;}
-                        if(sdif.z < 0.f){sp1.z += 0.51f;sdif.z -= 1.01f;}else{sp1.z -= 0.51f;sdif.z += 1.01f;}
+                        if(sp1.x == sp2.x && sp1.y == sp2.y && sp1.z == sp2.z)
+                        {
+                            sdif=(vec){0.f,0.f,0.f};
+                            ise = 0;
+                        }
+                        else
+                        {
+                            sp1o = sp1;
+                            sdif = sp2;
+                            vSub(&sdif, sdif, sp1);
+                            sdifo = sdif;
+                            if(sdif.x < 0.f){sp1.x += 0.51f;sdif.x -= 1.02f;}else{sp1.x -= 0.51f;sdif.x += 1.02f;}
+                            if(sdif.y < 0.f){sp1.y += 0.51f;sdif.y -= 1.02f;}else{sp1.y -= 0.51f;sdif.y += 1.02f;}
+                            if(sdif.z < 0.f){sp1.z += 0.51f;sdif.z -= 1.02f;}else{sp1.z -= 0.51f;sdif.z += 1.02f;}
+                        }
                         //printf("UP: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
                     }
                     else{sdif=(vec){0.f,0.f,0.f};}
@@ -1550,9 +1558,13 @@ void main_loop()
                                                                 sp1.x, sp1.y, sp1.z+sdif.z,
                                                             }
                                                             , 10 * 3 * sizeof(float), GL_STATIC_DRAW);
+        vec v = look_dir;
+        vInv(&v);
+        esRebind(GL_ARRAY_BUFFER,         &mdlVoxel.nid, &(vec[]){v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z}, 10 * 3 * sizeof(float),  GL_STATIC_DRAW);
         esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, &(GLbyte[]){0,1,2,3,0,4,5,6,7,8,5,1,2,6,7,3}, 16,  GL_STATIC_DRAW); // could probably be reduced more
         glDrawElements(GL_LINE_STRIP, voxel_numind, GL_UNSIGNED_BYTE, 0);
         esRebind(GL_ARRAY_BUFFER,         &mdlVoxel.vid, voxel_vertices, sizeof(voxel_vertices), GL_STATIC_DRAW);
+        esRebind(GL_ARRAY_BUFFER,         &mdlVoxel.nid, voxel_normals,  sizeof(voxel_normals),  GL_STATIC_DRAW);
         esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, voxel_indices,  sizeof(voxel_indices),  GL_STATIC_DRAW);
     }
 
@@ -1618,7 +1630,7 @@ void drawHud()
     SDL_FillRect(sHud, &(SDL_Rect){0, 0, lenText(tmp)+8, 19}, 0xCC000000);
     drawText(sHud, tmp, 4, 4, 2);
     // center hud
-    const int top = winh2-(11*10);
+    const int top = winh2-(11*11);
     const int left = winw2-239;
     SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 250}, 0xCC000000);
     int a = drawText(sHud, "Voxel Paint", winw2-27, top+11, 3);
