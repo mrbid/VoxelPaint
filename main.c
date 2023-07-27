@@ -86,7 +86,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v1.7a";
+const char appVersion[] = "v1.8";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -1192,21 +1192,17 @@ void main_loop()
                         const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
                         for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
                         {
-                            //printf("X: %.2f, %.2f, %.2f\n", x, sp2.x, xinc);
                             const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
                             for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
                             {
-                                //printf("Y: %.2f, %.2f, %.2f\n", y, sp2.y, yinc);
                                 const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
                                 for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
                                 {
-                                    //printf("Z: %.2f, %.2f, %.2f\n", z, sp2.z, zinc);
                                     for(uint i = 0; i < g.num_voxels; i++)
                                     {
                                         if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
                                             g.voxels[i].w = g.st;
                                     }
-                                    //printf("%.2f, %.2f, %.2f\n", x, y, z);
                                 }
                             }
                         }
@@ -1554,8 +1550,6 @@ void main_loop()
                                                                 sp1.x, sp1.y, sp1.z+sdif.z,
                                                             }
                                                             , 10 * 3 * sizeof(float), GL_STATIC_DRAW);
-        //esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, &(GLbyte[]){0,1,1,2,2,3,3,0,0,4,4,5,5,6,6,7,7,8,8,5,5,1,1,2,2,6,6,7,7,3,3}, 30,  GL_STATIC_DRAW);
-        //glDrawElements(GL_LINES, voxel_numind, GL_UNSIGNED_BYTE, 0);
         esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, &(GLbyte[]){0,1,2,3,0,4,5,6,7,8,5,1,2,6,7,3}, 16,  GL_STATIC_DRAW); // could probably be reduced more
         glDrawElements(GL_LINE_STRIP, voxel_numind, GL_UNSIGNED_BYTE, 0);
         esRebind(GL_ARRAY_BUFFER,         &mdlVoxel.vid, voxel_vertices, sizeof(voxel_vertices), GL_STATIC_DRAW);
@@ -1626,7 +1620,7 @@ void drawHud()
     // center hud
     const int top = winh2-(11*10);
     const int left = winw2-239;
-    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 230}, 0xCC000000);
+    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 250}, 0xCC000000);
     int a = drawText(sHud, "Voxel Paint", winw2-27, top+11, 3);
     a = drawText(sHud, appVersion, left+455, top+11, 4);
     a = drawText(sHud, "mrbid.github.io", left, top+11, 4);
@@ -1684,7 +1678,13 @@ void drawHud()
     drawText(sHud, "can be used to move the view around.", a, top+(11*16), 1);
     a = drawText(sHud, "ESCAPE ", left, top+(11*17), 3);
     drawText(sHud, "Release mouse focus.", a, top+(11*17), 1);
-    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*19), 3);
+    a = drawText(sHud, "To multiselect=", left, top+(11*19), 3);
+    a = drawText(sHud, " click and drag with ", a, top+(11*19), 1);
+    a = drawText(sHud, "Mouse 3", a, top+(11*19), 2);
+    a = drawText(sHud, ". Use ", a, top+(11*19), 1);
+    a = drawText(sHud, "V", a, top+(11*19), 2);
+    a = drawText(sHud, " to fill the selected area.", a, top+(11*19), 1);
+    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*21), 4);
     // flip the new hud to gpu
     flipHud();
 }
