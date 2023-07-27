@@ -98,8 +98,8 @@ float aspect, t = 0.f;
 uint g_fps = 0;
 uint ks[10] = {0};      // keystate
 uint focus_mouse = 0;   // mouse lock
-float ddist = 460.f;    // view distance
-float ddist2 = 460.f*460.f;
+float ddist = 490.f;    // view distance
+float ddist2 = 490.f*490.f;
 vec ipp;                // inverse player position
 vec look_dir;           // camera look direction
 int lray = 0;           // pointed at node index
