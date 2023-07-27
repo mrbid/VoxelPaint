@@ -26,6 +26,11 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * F8 = Load. (will erase what you have done since the last save)
 * F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.
 
+## Multi Selections
+Middle Mouse Click & Drag to select area, once selected
+you can fill the area using the V key or change the nodes
+with the mouse scroll, there are no keyboard binds for multi selections.
+
 Arrow Keys can be used to move the view around.
 
 Your state is automatically saved on exit.
