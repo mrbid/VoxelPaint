@@ -86,7 +86,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v1.7";
+const char appVersion[] = "v1.7a";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -106,6 +106,8 @@ int lray = 0;           // pointed at node index
 float ptt = 0.f;        // place timing trigger (for repeat place)
 float dtt = 0.f;        // delete timing trigger (for repeat delete)
 uint fks = 0;           // F-Key state (fast mode toggle)
+uint ise = 0;           // is selecting
+vec sp1, sp2, sdif, sdifo, sp1o; // selecting vars
 
 //*************************************
 // utility functions
@@ -606,7 +608,7 @@ int placeVoxel(const float repeat_delay)
 {
     ptt = t+repeat_delay;
 
-    if(g.pb.w == -1){return 0;}
+    if(g.pb.w == -1){return -1;}
 
     for(uint i = 0; i < g.num_voxels; i++)
     {
@@ -614,17 +616,27 @@ int placeVoxel(const float repeat_delay)
         {
             g.voxels[i] = g.pb;
             g.voxels[i].w = g.st;
-            return 1;
+            return i;
         }
     }
     if(g.num_voxels < max_voxels)
     {
         g.voxels[g.num_voxels] = g.pb;
         g.voxels[g.num_voxels].w = g.st;
+        const int r = g.num_voxels;
         g.num_voxels++;
-        return 1;
+        return r;
     }
-    return 0;
+    return -2;
+}
+forceinline int findVoxel(const float x, const float y, const float z)
+{
+    for(uint i = 0; i < g.num_voxels; i++)
+    {
+        if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+            return i;
+    }
+    return -1;
 }
 
 //*************************************
@@ -1038,6 +1050,51 @@ void main_loop()
                 {
                     defaultState(1);
                 }
+                else if(event.key.keysym.sym == SDLK_v)
+                {
+                    if(sp1.z == sp2.x && sp1.y == sp2.y && sp1.z == sp2.z){break;}
+
+                    const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
+                    for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                    {
+                        const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
+                        for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                        {
+                            const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
+                            for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
+                            {
+                                uint df = 0;
+                                for(uint i = 0; i < g.num_voxels; i++)
+                                {
+                                    if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+                                    {
+                                        g.voxels[i].w = g.st;
+                                        df=1;
+                                    }
+                                }
+                                if(df == 0)
+                                {
+                                    uint df2 = 0;
+                                    for(uint i = 0; i < g.num_voxels; i++)
+                                    {
+                                        if(g.voxels[i].w < 0.f)
+                                        {
+                                            g.voxels[i] = (vec){x,y,z,g.st};
+                                            df2 = 1;
+                                            break;
+                                        }
+                                    }
+                                    if(df2 == 0 && g.num_voxels < max_voxels)
+                                    {
+                                        g.voxels[g.num_voxels] = (vec){x,y,z,g.st};
+                                        const int r = g.num_voxels;
+                                        g.num_voxels++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 else if(event.key.keysym.sym == SDLK_F3)
                 {
                     saveState();
@@ -1130,6 +1187,31 @@ void main_loop()
                         if(g.st < 0.f){g.st = 16.f;}
                     }
 
+                    if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
+                    {
+                        const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
+                        for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                        {
+                            //printf("X: %.2f, %.2f, %.2f\n", x, sp2.x, xinc);
+                            const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
+                            for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                            {
+                                //printf("Y: %.2f, %.2f, %.2f\n", y, sp2.y, yinc);
+                                const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
+                                for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
+                                {
+                                    //printf("Z: %.2f, %.2f, %.2f\n", z, sp2.z, zinc);
+                                    for(uint i = 0; i < g.num_voxels; i++)
+                                    {
+                                        if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+                                            g.voxels[i].w = g.st;
+                                    }
+                                    //printf("%.2f, %.2f, %.2f\n", x, y, z);
+                                }
+                            }
+                        }
+                    }
+
                     g.voxels[lray].w = g.st;
                     idle = t;
                 }
@@ -1162,6 +1244,25 @@ void main_loop()
             {
                 if(event.button.button == SDL_BUTTON_LEFT){ptt = 0.f;}
                 else if(event.button.button == SDL_BUTTON_RIGHT){dtt = 0.f;}
+                else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
+                {
+                    traceViewPath(0);
+                    if(lray > -1)
+                    {
+                        g.st = g.voxels[lray].w;
+                        sp2 = g.voxels[lray];
+                        sp1o = sp1;
+                        sdif = sp2;
+                        vSub(&sdif, sdif, sp1);
+                        sdifo = sdif;
+                        if(sdif.x < 0.f){sp1.x += 0.51f;sdif.x -= 1.01f;}else{sp1.x -= 0.51f;sdif.x += 1.01f;}
+                        if(sdif.y < 0.f){sp1.y += 0.51f;sdif.y -= 1.01f;}else{sp1.y -= 0.51f;sdif.y += 1.01f;}
+                        if(sdif.z < 0.f){sp1.z += 0.51f;sdif.z -= 1.01f;}else{sp1.z -= 0.51f;sdif.z += 1.01f;}
+                        //printf("UP: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
+                    }
+                    else{sdif=(vec){0.f,0.f,0.f};}
+                    ise = 0;
+                }
                 md = 0;
                 idle = t;
             }
@@ -1195,7 +1296,9 @@ void main_loop()
                 else if(event.button.button == SDL_BUTTON_MIDDLE) // clone pointed voxel
                 {
                     traceViewPath(0);
-                    if(lray > -1){g.st = g.voxels[lray].w;}
+                    if(lray > -1){sp1 = g.voxels[lray];}else{sdif=(vec){0.f,0.f,0.f};}
+                    //printf("DOWN: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
+                    ise = 1;
                 }
                 else if(event.button.button == SDL_BUTTON_X1) // change movement speeds
                 {
@@ -1434,6 +1537,31 @@ void main_loop()
         glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
     }
 
+    // render selection area
+    if(ise != 1 && (sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f))
+    {
+        glUniform4f(voxel_id, 0.f,0.f,0.f, 10.f);
+        esRebind(GL_ARRAY_BUFFER, &mdlVoxel.vid, &(GLfloat[]){
+                                                                sp1.x, sp1.y, sp1.z,
+                                                                sp1.x+sdif.x, sp1.y, sp1.z,
+                                                                sp1.x+sdif.x, sp1.y+sdif.y, sp1.z,
+                                                                sp1.x, sp1.y+sdif.y, sp1.z,
+                                                                //
+                                                                sp1.x, sp1.y, sp1.z+sdif.z,
+                                                                sp1.x+sdif.x, sp1.y, sp1.z+sdif.z,
+                                                                sp1.x+sdif.x, sp1.y+sdif.y, sp1.z+sdif.z,
+                                                                sp1.x, sp1.y+sdif.y, sp1.z+sdif.z,
+                                                                sp1.x, sp1.y, sp1.z+sdif.z,
+                                                            }
+                                                            , 10 * 3 * sizeof(float), GL_STATIC_DRAW);
+        //esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, &(GLbyte[]){0,1,1,2,2,3,3,0,0,4,4,5,5,6,6,7,7,8,8,5,5,1,1,2,2,6,6,7,7,3,3}, 30,  GL_STATIC_DRAW);
+        //glDrawElements(GL_LINES, voxel_numind, GL_UNSIGNED_BYTE, 0);
+        esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, &(GLbyte[]){0,1,2,3,0,4,5,6,7,8,5,1,2,6,7,3}, 16,  GL_STATIC_DRAW); // could probably be reduced more
+        glDrawElements(GL_LINE_STRIP, voxel_numind, GL_UNSIGNED_BYTE, 0);
+        esRebind(GL_ARRAY_BUFFER,         &mdlVoxel.vid, voxel_vertices, sizeof(voxel_vertices), GL_STATIC_DRAW);
+        esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, voxel_indices,  sizeof(voxel_indices),  GL_STATIC_DRAW);
+    }
+
     // crosshair
     mGetViewZ(&look_dir, view);
     const float nx = ipp.x+(look_dir.x*130.f), ny = ipp.y+(look_dir.y*130.f), nz = ipp.z+(look_dir.z*130.f);
@@ -1662,6 +1790,10 @@ int main(int argc, char** argv)
 #ifdef __linux__
     printf("F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.\n");
 #endif
+    printf("\nMulti Selections:\n");
+    printf("Middle Mouse Click & Drag to select area, once selected\n");
+    printf("you can fill the area using the V key or change the nodes\n");
+    printf("with the mouse scroll, there are no keyboard binds for multi selections.\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
     printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
@@ -1700,6 +1832,7 @@ int main(int argc, char** argv)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+    glLineWidth(4.f);
 #ifdef SKYBLUE
     glClearColor(0.3f, 0.745f, 0.8863f, 0.f);
 #else
