@@ -1797,6 +1797,8 @@ void drawHud()
     a = drawText(sHud, "To multiselect=", left, top+(11*19), 3);
     a = drawText(sHud, " click and drag with ", a, top+(11*19), 1);
     a = drawText(sHud, "Mouse 3", a, top+(11*19), 2);
+    a = drawText(sHud, " or ", a, top+(11*19), 1);
+    a = drawText(sHud, "Q", a, top+(11*19), 2);
     a = drawText(sHud, ". Use ", a, top+(11*19), 1);
     a = drawText(sHud, "V", a, top+(11*19), 2);
     a = drawText(sHud, " to fill the selected area.", a, top+(11*19), 1);
