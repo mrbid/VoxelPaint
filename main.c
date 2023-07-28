@@ -86,7 +86,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v1.8";
+const char appVersion[] = "v1.9";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -656,7 +656,7 @@ void drawHud();
 void doPerspective()
 {
     glViewport(0, 0, winw, winh);
-    if(winw > 500 && winh > 260)
+    if(winw > 500 && winh > 270)
     {
         SDL_FreeSurface(sHud);
         sHud = SDL_RGBA32Surface(winw, winh);
@@ -1097,7 +1097,7 @@ void main_loop()
                 {
                     defaultState(1);
                 }
-                else if(event.key.keysym.sym == SDLK_v)
+                else if(event.key.keysym.sym == SDLK_b)
                 {
                     if(sdif.x == 0.f && sdif.y == 0.f && sdif.z == 0.f){break;}
 
@@ -1139,6 +1139,24 @@ void main_loop()
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                else if(event.key.keysym.sym == SDLK_n)
+                {
+                    if(sdif.x == 0.f && sdif.y == 0.f && sdif.z == 0.f){break;}
+
+                    const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
+                    for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                    {
+                        const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
+                        for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                        {
+                            const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
+                            for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
+                                for(uint i = 0; i < g.num_voxels; i++)
+                                    if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+                                        g.voxels[i].w = -1.f;
                         }
                     }
                 }
@@ -1736,9 +1754,9 @@ void drawHud()
     SDL_FillRect(sHud, &(SDL_Rect){0, 0, lenText(tmp)+8, 19}, 0xCC000000);
     drawText(sHud, tmp, 4, 4, 2);
     // center hud
-    const int top = winh2-(11*11);
+    const int top = winh2-(11*12);
     const int left = winw2-239;
-    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 250}, 0xCC000000);
+    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 260}, 0xCC000000);
     int a = drawText(sHud, "Voxel Paint", winw2-27, top+11, 3);
     a = drawText(sHud, appVersion, left+455, top+11, 4);
     a = drawText(sHud, "mrbid.github.io", left, top+11, 4);
@@ -1800,9 +1818,18 @@ void drawHud()
     a = drawText(sHud, " or ", a, top+(11*19), 1);
     a = drawText(sHud, "Q", a, top+(11*19), 2);
     a = drawText(sHud, ". Use ", a, top+(11*19), 1);
-    a = drawText(sHud, "V", a, top+(11*19), 2);
+    a = drawText(sHud, "B", a, top+(11*19), 2);
     a = drawText(sHud, " to fill the selected area.", a, top+(11*19), 1);
-    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*21), 4);
+    a = drawText(sHud, "Use ", left, top+(11*20), 1);
+    a = drawText(sHud, "N", a, top+(11*20), 2);
+    a = drawText(sHud, " to delete area.", a, top+(11*20), 1);
+    a = drawText(sHud, " Middle Scroll ", a, top+(11*20), 2);
+    a = drawText(sHud, "or ", a, top+(11*20), 3);
+    a = drawText(sHud, "X", a, top+(11*20), 2);
+    a = drawText(sHud, " + ", a, top+(11*20), 4);
+    a = drawText(sHud, "C", a, top+(11*20), 2);
+    a = drawText(sHud, " to change texture.", a, top+(11*20), 1);
+    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*22), 4);
     // flip the new hud to gpu
     flipHud();
 }
@@ -1909,9 +1936,8 @@ int main(int argc, char** argv)
     printf("F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.\n");
 #endif
     printf("\nMulti Selections:\n");
-    printf("Middle Mouse Click & Drag (or Q and drag) to select area, once selected\n");
-    printf("you can fill the area using the V key or change the nodes\n");
-    printf("with the Mouse Scroll or X+C.\n");
+    printf("Middle Mouse Click & Drag (or Q and drag) to select area.\n");
+    printf("Fill the nodes with B or delete them with N.\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
     printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
