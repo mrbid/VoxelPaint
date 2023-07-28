@@ -957,8 +957,13 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_q) // clone pointed voxel texture
                 {
-                    traceViewPath(0);
-                    if(lray > -1){g.st = g.voxels[lray].w;}
+                    if(ise == 0)
+                    {
+                        traceViewPath(0);
+                        if(lray > -1){sp1 = g.voxels[lray];}else{sdif=(vec){0.f,0.f,0.f};}
+                        //printf("DOWN: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
+                        ise = 1;
+                    }
                 }
                 else if(event.key.keysym.sym == SDLK_SLASH || event.key.keysym.sym == SDLK_x) // - change selected node
                 {
@@ -968,6 +973,27 @@ void main_loop()
                         g.st = g.voxels[lray].w - 1.f;
                         if(g.st < 0.f){g.st = 16.f;}
                         g.voxels[lray].w = g.st;
+
+                        if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
+                        {
+                            const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
+                            for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                            {
+                                const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
+                                for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                                {
+                                    const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
+                                    for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
+                                    {
+                                        for(uint i = 0; i < g.num_voxels; i++)
+                                        {
+                                            if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+                                                g.voxels[i].w = g.st;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     else
                     {
@@ -983,6 +1009,27 @@ void main_loop()
                         g.st = g.voxels[lray].w + 1.f;
                         if(g.st > 16.f){g.st = 0.f;}
                         g.voxels[lray].w = g.st;
+
+                        if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
+                        {
+                            const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
+                            for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                            {
+                                const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
+                                for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                                {
+                                    const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
+                                    for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
+                                    {
+                                        for(uint i = 0; i < g.num_voxels; i++)
+                                        {
+                                            if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+                                                g.voxels[i].w = g.st;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     else
                     {
@@ -1165,6 +1212,33 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_SPACE){ks[9] = 0;}
                 else if(event.key.keysym.sym == SDLK_RSHIFT){ptt = 0.f;}
                 else if(event.key.keysym.sym == SDLK_RCTRL){dtt = 0.f;}
+                else if(event.key.keysym.sym == SDLK_q) // clone pointed voxel texture
+                {
+                    traceViewPath(0);
+                    if(lray > -1)
+                    {
+                        g.st = g.voxels[lray].w;
+                        sp2 = g.voxels[lray];
+                        if(sp1.x == sp2.x && sp1.y == sp2.y && sp1.z == sp2.z)
+                        {
+                            sdif=(vec){0.f,0.f,0.f};
+                            ise = 0;
+                        }
+                        else
+                        {
+                            sp1o = sp1;
+                            sdif = sp2;
+                            vSub(&sdif, sdif, sp1);
+                            sdifo = sdif;
+                            if(sdif.x < 0.f){sp1.x += 0.51f;sdif.x -= 1.02f;}else{sp1.x -= 0.51f;sdif.x += 1.02f;}
+                            if(sdif.y < 0.f){sp1.y += 0.51f;sdif.y -= 1.02f;}else{sp1.y -= 0.51f;sdif.y += 1.02f;}
+                            if(sdif.z < 0.f){sp1.z += 0.51f;sdif.z -= 1.02f;}else{sp1.z -= 0.51f;sdif.z += 1.02f;}
+                        }
+                        //printf("UP: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
+                    }
+                    else{sdif=(vec){0.f,0.f,0.f};}
+                    ise = 0;
+                }
                 idle = t;
             }
             break;
@@ -1690,19 +1764,17 @@ void drawHud()
     drawText(sHud, "Toggle player fast speed on and off.", a, top+(11*7), 1);
     a = drawText(sHud, "1-7 ", left, top+(11*8), 2);
     drawText(sHud, "Change move speed for selected fast state.", a, top+(11*8), 1);
-    a = drawText(sHud, "Q", left, top+(11*9), 2);
+    a = drawText(sHud, "Middle Click", left, top+(11*9), 2);
     a = drawText(sHud, " or ", a, top+(11*9), 3);
-    a = drawText(sHud, "Middle Click ", a, top+(11*9), 2);
+    a = drawText(sHud, "Q ", a, top+(11*9), 2);
     drawText(sHud, "Clone texture of pointed node.", a, top+(11*9), 1);
-    a = drawText(sHud, "Mouse Scroll", left, top+(11*10), 2);
+    a = drawText(sHud, "X", left, top+(11*10), 2);
+    a = drawText(sHud, " + ", a, top+(11*10), 4);
+    a = drawText(sHud, "C", a, top+(11*10), 2);
     a = drawText(sHud, " or ", a, top+(11*10), 3);
     a = drawText(sHud, "Slash", a, top+(11*10), 2);
     a = drawText(sHud, " + ", a, top+(11*10), 4);
-    a = drawText(sHud, "Quote", a, top+(11*10), 2);
-    a = drawText(sHud, " or ", a, top+(11*10), 3);
-    a = drawText(sHud, "X", a, top+(11*10), 2);
-    a = drawText(sHud, " + ", a, top+(11*10), 4);
-    a = drawText(sHud, "C ", a, top+(11*10), 2);
+    a = drawText(sHud, "Quote ", a, top+(11*10), 2);
     drawText(sHud, "Change texture of pointed node.", a, top+(11*10), 1);
     a = drawText(sHud, "T ", left, top+(11*11), 2);
     drawText(sHud, "Resets view and position matrix.", a, top+(11*11), 1);
@@ -1826,7 +1898,7 @@ int main(int argc, char** argv)
     printf("E / F / Mouse4 = Toggle player fast speed on and off.\n");
     printf("1-7 = Change move speed for selected fast state.\n");
     printf("Q / Middle Click = Clone texture of pointed node.\n");
-    printf("Mouse Scroll / Slash + Quote / X + C = Change texture of pointed node.\n");
+    printf("Slash + Quote / X + C = Change texture of pointed node.\n");
     printf("T = Resets view and position matrix.\n");
     printf("R / G = Gravity on/off.\n");
     printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
@@ -1835,9 +1907,9 @@ int main(int argc, char** argv)
     printf("F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.\n");
 #endif
     printf("\nMulti Selections:\n");
-    printf("Middle Mouse Click & Drag to select area, once selected\n");
+    printf("Middle Mouse Click & Drag (or Q and drag) to select area, once selected\n");
     printf("you can fill the area using the V key or change the nodes\n");
-    printf("with the mouse scroll, there are no keyboard binds for multi selections.\n");
+    printf("with the Mouse Scroll or X+C.\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
     printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
