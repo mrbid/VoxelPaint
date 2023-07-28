@@ -86,7 +86,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v1.9";
+const char appVersion[] = "v2.0";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -976,21 +976,17 @@ void main_loop()
 
                         if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
                         {
-                            const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
-                            for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                            for(uint i = 0; i < g.num_voxels; i++)
                             {
-                                const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
-                                for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                                float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
+                                if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
+                                if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
+                                if(sp1o.z < sp2.z){lz=sp1o.z;hz=sp2.z;}else{lz=sp2.z;hz=sp1o.z;}
+                                if( g.voxels[i].x >= lx && g.voxels[i].x <= hx &&
+                                    g.voxels[i].y >= ly && g.voxels[i].y <= hy &&
+                                    g.voxels[i].z >= lz && g.voxels[i].z <= hz )
                                 {
-                                    const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
-                                    for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
-                                    {
-                                        for(uint i = 0; i < g.num_voxels; i++)
-                                        {
-                                            if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
-                                                g.voxels[i].w = g.st;
-                                        }
-                                    }
+                                    g.voxels[i].w = g.st;
                                 }
                             }
                         }
@@ -1012,21 +1008,17 @@ void main_loop()
 
                         if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
                         {
-                            const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
-                            for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
+                            for(uint i = 0; i < g.num_voxels; i++)
                             {
-                                const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
-                                for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
+                                float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
+                                if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
+                                if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
+                                if(sp1o.z < sp2.z){lz=sp1o.z;hz=sp2.z;}else{lz=sp2.z;hz=sp1o.z;}
+                                if( g.voxels[i].x >= lx && g.voxels[i].x <= hx &&
+                                    g.voxels[i].y >= ly && g.voxels[i].y <= hy &&
+                                    g.voxels[i].z >= lz && g.voxels[i].z <= hz )
                                 {
-                                    const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
-                                    for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
-                                    {
-                                        for(uint i = 0; i < g.num_voxels; i++)
-                                        {
-                                            if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
-                                                g.voxels[i].w = g.st;
-                                        }
-                                    }
+                                    g.voxels[i].w = g.st;
                                 }
                             }
                         }
@@ -1291,79 +1283,6 @@ void main_loop()
                         }
                     }
                 }
-
-                // if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
-                // {
-                //     const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
-                //     for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
-                //     {
-                //         const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
-                //         for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
-                //         {
-                //             const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
-                //             for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
-                //             {
-                //                 for(uint i = 0; i < g.num_voxels; i++)
-                //                 {
-                //                     if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
-                //                         g.voxels[i].w = g.st;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-
-                // traceViewPath(0);
-                // if(lray > -1)
-                // {
-                //     if(event.wheel.y > 0)
-                //     {
-                //         g.st = g.voxels[lray].w + 1.f;
-                //         if(g.st > 16.f){g.st = 0.f;}
-                //     }
-                //     else if(event.wheel.y < 0)
-                //     {
-                //         g.st = g.voxels[lray].w - 1.f;
-                //         if(g.st < 0.f){g.st = 16.f;}
-                //     }
-
-                //     if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
-                //     {
-                //         const float xinc = sdifo.x > 0.f ? 1.f : -1.f;
-                //         for(float x = sp1o.x; x != sp2.x+xinc; x += xinc)
-                //         {
-                //             const float yinc = sdifo.y > 0.f ? 1.f : -1.f;
-                //             for(float y = sp1o.y; y != sp2.y+yinc; y += yinc)
-                //             {
-                //                 const float zinc = sdifo.z > 0.f ? 1.f : -1.f;
-                //                 for(float z = sp1o.z; z != sp2.z+zinc; z += zinc)
-                //                 {
-                //                     for(uint i = 0; i < g.num_voxels; i++)
-                //                     {
-                //                         if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
-                //                             g.voxels[i].w = g.st;
-                //                     }
-                //                 }
-                //             }
-                //         }
-                //     }
-
-                //     g.voxels[lray].w = g.st;
-                //     idle = t;
-                // }
-                // else
-                // {
-                //     if(event.wheel.y > 0)
-                //     {
-                //         g.st += 1.f;
-                //         if(g.st > 16.f){g.st = 0.f;}
-                //     }
-                //     else if(event.wheel.y < 0)
-                //     {
-                //         g.st -= 1.f;
-                //         if(g.st < 0.f){g.st = 16.f;}
-                //     }
-                // }
             }
             break;
 
