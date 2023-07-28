@@ -1,6 +1,6 @@
 name: voxelpaint
 base: core20
-version: '1.9'
+version: '2.0'
 license: GPL-2.0-only
 summary: Paint in 3D using voxels!
 description: |
