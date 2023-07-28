@@ -80,6 +80,11 @@ void esBind(const GLenum target, GLuint* buffer, const void* data, const GLsizei
     glBindBuffer(target, *buffer);
     glBufferData(target, datalen, data, usage);
 }
+void esRebind(const GLenum target, GLuint* buffer, const void* data, const GLsizeiptr datalen, const GLenum usage)
+{
+    glBindBuffer(target, *buffer);
+    glBufferData(target, datalen, data, usage);
+}
 GLuint esLoadTexture(const GLuint w, const GLuint h, const unsigned char* data)
 {
     GLuint textureId;
