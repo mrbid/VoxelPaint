@@ -1967,7 +1967,7 @@ int main(int argc, char** argv)
     {
         for(int i = 0; i < g.num_voxels; i++)
         {
-            if(g.voxels[i].w < 0){continue;}
+            if(g.voxels[i].w < 0.f){continue;}
             g.voxels[i].x = roundf(g.voxels[i].x);
             g.voxels[i].y = roundf(g.voxels[i].y);
             g.voxels[i].z = roundf(g.voxels[i].z);
