@@ -629,15 +629,15 @@ int placeVoxel(const float repeat_delay)
     }
     return -2;
 }
-forceinline int findVoxel(const float x, const float y, const float z)
-{
-    for(uint i = 0; i < g.num_voxels; i++)
-    {
-        if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
-            return i;
-    }
-    return -1;
-}
+// forceinline int findVoxel(const float x, const float y, const float z)
+// {
+//     for(uint i = 0; i < g.num_voxels; i++)
+//     {
+//         if(g.voxels[i].x == x && g.voxels[i].y == y && g.voxels[i].z == z)
+//             return i;
+//     }
+//     return -1;
+// }
 
 //*************************************
 // more utility functions
@@ -1617,8 +1617,7 @@ void main_loop()
                                                                 sp1.x, sp1.y, sp1.z+sdif.z,
                                                             }
                                                             , 10 * 3 * sizeof(float), GL_STATIC_DRAW);
-        vec v = look_dir;
-        vInv(&v);
+        const vec v = (vec){-look_dir.x, -look_dir.y, -look_dir.z};
         esRebind(GL_ARRAY_BUFFER,         &mdlVoxel.nid, &(vec[]){v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z, v.x,v.y,v.z}, 10 * 3 * sizeof(float),  GL_STATIC_DRAW);
         esRebind(GL_ELEMENT_ARRAY_BUFFER, &mdlVoxel.iid, &(GLbyte[]){0,1,2,3,0,4,5,6,7,8,5,1,2,6,7,3}, 16,  GL_STATIC_DRAW); // could probably be reduced more
         glDrawElements(GL_LINE_STRIP, voxel_numind, GL_UNSIGNED_BYTE, 0);
@@ -1875,7 +1874,7 @@ int main(int argc, char** argv)
     printf("Fill the nodes with B or delete them with N.\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
-    printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) can edit ppm files.\n", appdir);
+    printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) or KolourPaint can edit ppm files.\n", appdir);
     printf("* You can change the mouse sensitivity by passing the new\n  sensitivity as the 1st command line parameter default is\n  0.003 `./vox 0.003`.\n");
     printf("----\n");
 
