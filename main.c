@@ -978,6 +978,7 @@ void main_loop()
                         {
                             for(uint i = 0; i < g.num_voxels; i++)
                             {
+                                if(g.voxels[i].w < 0.f){continue;}
                                 float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
                                 if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
                                 if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
@@ -1010,6 +1011,7 @@ void main_loop()
                         {
                             for(uint i = 0; i < g.num_voxels; i++)
                             {
+                                if(g.voxels[i].w < 0.f){continue;}
                                 float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
                                 if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
                                 if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
@@ -1139,6 +1141,7 @@ void main_loop()
                     if(sdif.x == 0.f && sdif.y == 0.f && sdif.z == 0.f){break;}
                     for(uint i = 0; i < g.num_voxels; i++)
                     {
+                        if(g.voxels[i].w < 0.f){continue;}
                         float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
                         if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
                         if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
@@ -1271,6 +1274,7 @@ void main_loop()
                 {
                     for(uint i = 0; i < g.num_voxels; i++)
                     {
+                        if(g.voxels[i].w < 0.f){continue;}
                         float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
                         if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
                         if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
@@ -1874,7 +1878,7 @@ int main(int argc, char** argv)
     printf("Fill the nodes with B or delete them with N.\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
-    printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a ppm with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) or KolourPaint can edit ppm files.\n", appdir);
+    printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a PPM with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) or KolourPaint can edit PPM files.\n", appdir);
     printf("* You can change the mouse sensitivity by passing the new\n  sensitivity as the 1st command line parameter default is\n  0.003 `./vox 0.003`.\n");
     printf("----\n");
 
