@@ -154,8 +154,6 @@ const GLchar* f0 =
         "attribute vec4 position;\n"
         "attribute vec3 normal;\n"
         "attribute vec2 texcoord;\n"
-        "varying vec3 vertPos;\n"
-        "varying vec3 vertNorm;\n"
         "varying float lambertian;\n"
         "varying vec2 vtc;\n"
         "varying float vto;\n"
@@ -169,10 +167,8 @@ const GLchar* f0 =
             "model[3] = vec4(voxel.x, voxel.y, voxel.z, 1.0);\n"
             "mat4 modelview = view * model;\n"
             "vec4 vertPos4 = modelview * position;\n"
-            "vertPos = vertPos4.xyz / vertPos4.w;\n"
-            "vertNorm = vec3(modelview * vec4(normal, 0.0));\n"
-            "vec3 lightDir = normalize(-vertPos);\n"
-            "lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0) * clamp(1.0 - (length(vertPos)*0.002), 0.0, 1.0);\n"
+            "vec3 vertPos = vertPos4.xyz / vertPos4.w;\n"
+            "lambertian = max(dot(normalize(-vertPos), normalize(vec3(modelview * vec4(normal, 0.0)))), 0.0);\n"
             "vto = voxel.w;\n"
             "gl_Position = projection * vertPos4;\n"
         "}\n";
@@ -187,7 +183,7 @@ const GLchar* f0 =
         "void main()\n"
         "{\n"
             "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
-            "gl_FragColor = vec4((tcol.xyz * 0.64) + lambertian*tcol.xyz, 1.f);\n"
+            "gl_FragColor = vec4((tcol.xyz * 0.64) + lambertian*tcol.xyz, 1.0);\n"
         "}\n";
 
 #else
@@ -281,7 +277,7 @@ void makeVoxel()
     shdVoxel_position   = glGetAttribLocation(shdVoxel,  "position");
     shdVoxel_normal     = glGetAttribLocation(shdVoxel,  "normal");
     shdVoxel_texcoord   = glGetAttribLocation(shdVoxel,  "texcoord");
-    //
+    //<><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
     shdVoxel_projection = glGetUniformLocation(shdVoxel, "projection");
     shdVoxel_view       = glGetUniformLocation(shdVoxel, "view");
     shdVoxel_voxel      = glGetUniformLocation(shdVoxel, "voxel");
