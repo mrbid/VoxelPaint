@@ -20,7 +20,7 @@ description: |
   F8 = Load. (will erase what you have done since the last save)
   F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.
 
-  To multiselect click and drag with Middle Mouse or Q. Use V to fill the selected area.
+  To multiselect click and drag with Middle Mouse or Q. Fill the nodes with B or delete them with N. Middle Scroll or X+C to change texture.
 
   Arrow Keys can be used to move the view around.
   
