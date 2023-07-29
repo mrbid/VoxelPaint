@@ -32,3 +32,5 @@ Arrow Keys can be used to move the view around.
 Your state is automatically saved on exit.
 
 You can customize the 17 block tileset, in your dataPath you will find a `tiles.ppm` image file, edit this file and save it as a PPM with a `P6 272 16 255` header. [Krita](https://krita.org) or [KolourPaint](https://apps.kde.org/en-gb/kolourpaint/) can edit PPM files.
+
+You can change the mouse sensitivity by passing the new sensitivity as the 1st command line parameter default is 0.003 `./vox 0.003`.
