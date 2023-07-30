@@ -80,13 +80,14 @@ const unsigned char icon[] = { // 16, 16, 4
 
 #define uint GLuint
 #define sint GLint
+#define uchar unsigned char
 #define forceinline __attribute__((always_inline)) inline
 
 //*************************************
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v2.0";
+const char appVersion[] = "v2.1";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -107,7 +108,8 @@ float ptt = 0.f;        // place timing trigger (for repeat place)
 float dtt = 0.f;        // delete timing trigger (for repeat delete)
 uint fks = 0;           // F-Key state (fast mode toggle)
 uint ise = 0;           // is selecting
-vec sp1, sp2, sdif, sdifo, sp1o; // selecting vars
+vec sp1d, sp1, sp2, sdif, sdifo, sp1o; // selecting vars
+float bigc = 0.f; // big cursor start time
 
 //*************************************
 // utility functions
@@ -154,7 +156,9 @@ typedef struct
     float ms;   // player move speed
     float cms;  // custom move speed (high)
     float lms;  // custom move speed (low)
-    uint grav;  // gravity on/off toggle
+    uchar grav; // gravity on/off toggle
+    uchar plock;// pitchlock on/off toggle
+    uchar r1, r2;
     uint num_voxels;
     vec voxels[max_voxels]; // x,y,z,w (w = texture_id)
 }
@@ -179,6 +183,7 @@ void defaultState(const uint type)
         g.cms = g.ms*2.f;
     }
     g.grav = 0;
+    g.plock = 0;
     if(g.num_voxels == 0){g.num_voxels = 1;}
 }
 
@@ -264,14 +269,14 @@ uint loadUncompressedState()
 }
 
 #ifdef NO_COMPRESSION
-    void saveState()
+    void saveState(const char* fne)
     {
     #ifdef __linux__
         setlocale(LC_NUMERIC, "");
         const uint64_t st = microtime();
     #endif
         char file[256];
-        sprintf(file, "%sworld.db2", appdir);
+        sprintf(file, "%sworld.db2%s", appdir, fne);
         FILE* f = fopen(file, "wb");
         if(f != NULL)
         {
@@ -295,14 +300,14 @@ uint loadUncompressedState()
 
     uint loadState(){return loadUncompressedState();}
 #else
-    void saveState()
+    void saveState(const char* fne)
     {
     #ifdef __linux__
         setlocale(LC_NUMERIC, "");
         const uint64_t st = microtime();
     #endif
         char file[256];
-        sprintf(file, "%sworld.gz", appdir);
+        sprintf(file, "%sworld.gz%s", appdir, fne);
         gzFile f = gzopen(file, "wb1h");
         if(f != Z_NULL)
         {
@@ -656,7 +661,7 @@ void drawHud();
 void doPerspective()
 {
     glViewport(0, 0, winw, winh);
-    if(winw > 500 && winh > 270)
+    if(winw > 500 && winh > 280)
     {
         SDL_FreeSurface(sHud);
         sHud = SDL_RGBA32Surface(winw, winh);
@@ -755,7 +760,7 @@ int drawText(SDL_Surface* o, const char* s, Uint32 x, Uint32 y, Uint8 colour)
     const Uint32 len = strlen(s);
     for(Uint32 i = 0; i < len; i++)
     {
-        if(s[i] == 'A'){     SDL_BlitSurface(font, &(SDL_Rect){0,0,7,9}, o, &dr); dr.x += 7+m;}
+             if(s[i] == 'A'){SDL_BlitSurface(font, &(SDL_Rect){0,0,7,9}, o, &dr); dr.x += 7+m;}
         else if(s[i] == 'B'){SDL_BlitSurface(font, &(SDL_Rect){7,0,6,9}, o, &dr); dr.x += 6+m;}
         else if(s[i] == 'C'){SDL_BlitSurface(font, &(SDL_Rect){13,0,6,9}, o, &dr); dr.x += 6+m;}
         else if(s[i] == 'D'){SDL_BlitSurface(font, &(SDL_Rect){19,0,7,9}, o, &dr); dr.x += 7+m;}
@@ -833,7 +838,7 @@ int lenText(const char* s)
     const Uint32 len = strlen(s);
     for(Uint32 i = 0; i < len; i++)
     {
-        if(s[i] == 'A'){     x += 7+m;}
+             if(s[i] == 'A'){x += 7+m;}
         else if(s[i] == 'B'){x += 6+m;}
         else if(s[i] == 'C'){x += 6+m;}
         else if(s[i] == 'D'){x += 7+m;}
@@ -926,7 +931,16 @@ void main_loop()
     // if user is idle for 3 minutes, save.
     if(idle != 0.f && t-idle > 180.f)
     {
-        saveState();
+        // char tmp[32];
+        // tmp[0] = '.';
+        // tmp[1] = 'i';
+        // tmp[2] = 'd';
+        // tmp[3] = 'l';
+        // tmp[4] = 'e';
+        // tmp[5] = '.';
+        // const time_t tt = time(0);
+        // strftime(&tmp[6], 32, "%d-%m-%y_%H:%M:%S", localtime(&tt));
+        saveState(".idle");
         idle = 0.f; // so we only save once
         // on input a new idle is set, and a
         // count-down for a new save begins.
@@ -1156,7 +1170,7 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_F3)
                 {
-                    saveState();
+                    saveState("");
                 }
                 else if(event.key.keysym.sym == SDLK_F8)
                 {
@@ -1204,6 +1218,11 @@ void main_loop()
                         g.num_voxels++;
                     }
                 }
+#else
+                else if(event.key.keysym.sym == SDLK_p)
+                {
+                    g.plock = 1 - g.plock;
+                }
 #endif
                 idle = t;
             }
@@ -1248,7 +1267,6 @@ void main_loop()
                         }
                         //printf("UP: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
                     }
-                    else{sdif=(vec){0.f,0.f,0.f};}
                     ise = 0;
                 }
                 idle = t;
@@ -1258,6 +1276,8 @@ void main_loop()
             case SDL_MOUSEWHEEL: // change selected node
             {
                 if(focus_mouse == 0){break;}
+
+                bigc = t+0.5f;
 
                 if(event.wheel.y > 0)
                 {
@@ -1270,20 +1290,23 @@ void main_loop()
                     if(g.st < 0.f){g.st = 16.f;}
                 }
 
-                if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
+                if(ise == 0)
                 {
-                    for(uint i = 0; i < g.num_voxels; i++)
+                    if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
                     {
-                        if(g.voxels[i].w < 0.f){continue;}
-                        float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
-                        if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
-                        if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
-                        if(sp1o.z < sp2.z){lz=sp1o.z;hz=sp2.z;}else{lz=sp2.z;hz=sp1o.z;}
-                        if( g.voxels[i].x >= lx && g.voxels[i].x <= hx &&
-                            g.voxels[i].y >= ly && g.voxels[i].y <= hy &&
-                            g.voxels[i].z >= lz && g.voxels[i].z <= hz )
+                        for(uint i = 0; i < g.num_voxels; i++)
                         {
-                            g.voxels[i].w = g.st;
+                            if(g.voxels[i].w < 0.f){continue;}
+                            float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
+                            if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
+                            if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
+                            if(sp1o.z < sp2.z){lz=sp1o.z;hz=sp2.z;}else{lz=sp2.z;hz=sp1o.z;}
+                            if( g.voxels[i].x >= lx && g.voxels[i].x <= hx &&
+                                g.voxels[i].y >= ly && g.voxels[i].y <= hy &&
+                                g.voxels[i].z >= lz && g.voxels[i].z <= hz )
+                            {
+                                g.voxels[i].w = g.st;
+                            }
                         }
                     }
                 }
@@ -1295,6 +1318,34 @@ void main_loop()
                 if(focus_mouse == 0){break;}
                 mx = event.motion.x;
                 my = event.motion.y;
+
+                if(ise == 1)
+                {
+                    static float nt = 0.f;
+                    if(t > nt)
+                    {
+                        traceViewPath(0);
+                        if(lray > -1)
+                        {
+                            g.st = g.voxels[lray].w;
+                            sp2 = g.voxels[lray];
+
+                            if(sp1.x != sp2.x || sp1.y != sp2.y || sp1.z != sp2.z)
+                            {
+                                sp1o = sp1;
+                                sp1d = sp1;
+                                sdif = sp2;
+                                vSub(&sdif, sdif, sp1);
+                                sdifo = sdif;
+                                if(sdif.x < 0.f){sp1d.x += 0.51f;sdif.x -= 1.02f;}else{sp1d.x -= 0.51f;sdif.x += 1.02f;}
+                                if(sdif.y < 0.f){sp1d.y += 0.51f;sdif.y -= 1.02f;}else{sp1d.y -= 0.51f;sdif.y += 1.02f;}
+                                if(sdif.z < 0.f){sp1d.z += 0.51f;sdif.z -= 1.02f;}else{sp1d.z -= 0.51f;sdif.z += 1.02f;}
+                            }
+                        }
+                        nt = t+0.06f;
+                    }
+                }
+
                 idle = t;
             }
             break;
@@ -1318,16 +1369,16 @@ void main_loop()
                         else
                         {
                             sp1o = sp1;
+                            sp1d = sp1;
                             sdif = sp2;
                             vSub(&sdif, sdif, sp1);
                             sdifo = sdif;
-                            if(sdif.x < 0.f){sp1.x += 0.51f;sdif.x -= 1.02f;}else{sp1.x -= 0.51f;sdif.x += 1.02f;}
-                            if(sdif.y < 0.f){sp1.y += 0.51f;sdif.y -= 1.02f;}else{sp1.y -= 0.51f;sdif.y += 1.02f;}
-                            if(sdif.z < 0.f){sp1.z += 0.51f;sdif.z -= 1.02f;}else{sp1.z -= 0.51f;sdif.z += 1.02f;}
+                            if(sdif.x < 0.f){sp1d.x += 0.51f;sdif.x -= 1.02f;}else{sp1d.x -= 0.51f;sdif.x += 1.02f;}
+                            if(sdif.y < 0.f){sp1d.y += 0.51f;sdif.y -= 1.02f;}else{sp1d.y -= 0.51f;sdif.y += 1.02f;}
+                            if(sdif.z < 0.f){sp1d.z += 0.51f;sdif.z -= 1.02f;}else{sp1d.z -= 0.51f;sdif.z += 1.02f;}
                         }
                         //printf("UP: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
                     }
-                    else{sdif=(vec){0.f,0.f,0.f};}
                     ise = 0;
                 }
                 md = 0;
@@ -1393,7 +1444,7 @@ void main_loop()
             case SDL_QUIT:
             {
                 SDL_HideWindow(wnd);
-                saveState();
+                saveState("");
                 SDL_FreeSurface(s_icon);
                 SDL_FreeSurface(sHud);
                 SDL_GL_DeleteContext(glc);
@@ -1412,7 +1463,7 @@ void main_loop()
     {
         mGetViewZ(&look_dir, view);
 
-        if(g.grav == 1)
+        if(g.grav == 1 || g.plock == 1)
         {
             look_dir.z = -0.001f;
             vNorm(&look_dir);
@@ -1464,7 +1515,10 @@ void main_loop()
         if(ks[4] == 1) // LSHIFT (down)
         {
             vec vdc;
-            mGetViewY(&vdc, view);
+            if(g.plock == 1)
+                vdc = (vec){0.f,0.f,-1.f};
+            else
+                mGetViewY(&vdc, view);
             vec m;
             vMulS(&m, vdc, g.ms * dt);
             vSub(&g.pp, g.pp, m);
@@ -1472,7 +1526,10 @@ void main_loop()
         else if(ks[9] == 1) // SPACE (up)
         {
             vec vdc;
-            mGetViewY(&vdc, view);
+            if(g.plock == 1)
+                vdc = (vec){0.f,0.f,-1.f};
+            else
+                mGetViewY(&vdc, view);
             vec m;
             vMulS(&m, vdc, g.ms * dt);
             vAdd(&g.pp, g.pp, m);
@@ -1538,11 +1595,21 @@ void main_loop()
         {
             g.xrot += xd*g.sens;
             g.yrot += yd*g.sens;
-        
-            if(g.yrot > 3.f)
-                g.yrot = 3.f;
-            if(g.yrot < 0.f)
-                g.yrot = 0.f;
+
+            if(g.plock == 1)
+            {
+                if(g.yrot > 3.11f)
+                    g.yrot = 3.11f;
+                if(g.yrot < 0.03f)
+                    g.yrot = 0.03f;
+            }
+            else
+            {
+                if(g.yrot > 3.14f)
+                    g.yrot = 3.14f;
+                if(g.yrot < 0.1f)
+                    g.yrot = 0.1f;
+            }
             
             lx = winw2, ly = winh2;
             SDL_WarpMouseInWindow(wnd, lx, ly);
@@ -1594,6 +1661,7 @@ void main_loop()
     ipp = g.pp; // inverse player position (setting global 'ipp' here is perfect)
     vInv(&ipp); // <--
     glUniformMatrix4fv(view_id, 1, GL_FALSE, (float*)&view.m[0][0]);
+    mGetViewZ(&look_dir, view);
     for(int j = 0; j < g.num_voxels; j++)
     {
         if(g.voxels[j].w < 0.f || 
@@ -1605,20 +1673,20 @@ void main_loop()
     }
 
     // render selection area
-    if(ise != 1 && (sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f))
+    if(sdif.x != 0.f && sdif.y != 0.f && sdif.z != 0.f)
     {
         glUniform4f(voxel_id, 0.f,0.f,0.f, 10.f);
         esRebind(GL_ARRAY_BUFFER, &mdlVoxel.vid, &(GLfloat[]){
-                                                                sp1.x, sp1.y, sp1.z,
-                                                                sp1.x+sdif.x, sp1.y, sp1.z,
-                                                                sp1.x+sdif.x, sp1.y+sdif.y, sp1.z,
-                                                                sp1.x, sp1.y+sdif.y, sp1.z,
+                                                                sp1d.x, sp1d.y, sp1d.z,
+                                                                sp1d.x+sdif.x, sp1d.y, sp1d.z,
+                                                                sp1d.x+sdif.x, sp1d.y+sdif.y, sp1d.z,
+                                                                sp1d.x, sp1d.y+sdif.y, sp1d.z,
                                                                 //
-                                                                sp1.x, sp1.y, sp1.z+sdif.z,
-                                                                sp1.x+sdif.x, sp1.y, sp1.z+sdif.z,
-                                                                sp1.x+sdif.x, sp1.y+sdif.y, sp1.z+sdif.z,
-                                                                sp1.x, sp1.y+sdif.y, sp1.z+sdif.z,
-                                                                sp1.x, sp1.y, sp1.z+sdif.z,
+                                                                sp1d.x, sp1d.y, sp1d.z+sdif.z,
+                                                                sp1d.x+sdif.x, sp1d.y, sp1d.z+sdif.z,
+                                                                sp1d.x+sdif.x, sp1d.y+sdif.y, sp1d.z+sdif.z,
+                                                                sp1d.x, sp1d.y+sdif.y, sp1d.z+sdif.z,
+                                                                sp1d.x, sp1d.y, sp1d.z+sdif.z,
                                                             }
                                                             , 10 * 3 * sizeof(float), GL_STATIC_DRAW);
         const vec v = (vec){-look_dir.x, -look_dir.y, -look_dir.z};
@@ -1632,7 +1700,9 @@ void main_loop()
 
     // crosshair
     mGetViewZ(&look_dir, view);
-    const float nx = ipp.x+(look_dir.x*130.f), ny = ipp.y+(look_dir.y*130.f), nz = ipp.z+(look_dir.z*130.f);
+    float cdi = 130.f;
+    if(t < bigc){cdi = 50.f;}
+    const float nx = ipp.x+(look_dir.x*cdi), ny = ipp.y+(look_dir.y*cdi), nz = ipp.z+(look_dir.z*cdi);
     glUniform4f(voxel_id, nx, ny, nz, g.st);
     glDisable(GL_DEPTH_TEST);
         glDrawElements(GL_TRIANGLES, voxel_numind, GL_UNSIGNED_BYTE, 0);
@@ -1694,7 +1764,7 @@ void drawHud()
     // center hud
     const int top = winh2-(11*12);
     const int left = winw2-239;
-    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 260}, 0xCC000000);
+    SDL_FillRect(sHud, &(SDL_Rect){winw2-250, top, 500, 270}, 0xCC000000);
     int a = drawText(sHud, "Voxel Paint", winw2-27, top+11, 3);
     a = drawText(sHud, appVersion, left+455, top+11, 4);
     a = drawText(sHud, "mrbid.github.io", left, top+11, 4);
@@ -1733,41 +1803,43 @@ void drawHud()
     a = drawText(sHud, "Quote ", a, top+(11*10), 2);
     drawText(sHud, "Change texture of pointed node.", a, top+(11*10), 1);
     a = drawText(sHud, "T ", left, top+(11*11), 2);
-    drawText(sHud, "Resets view and position matrix.", a, top+(11*11), 1);
-    a = drawText(sHud, "R", left, top+(11*12), 2);
-    a = drawText(sHud, " or ", a, top+(11*12), 3);
-    a = drawText(sHud, "G ", a, top+(11*12), 2);
-    drawText(sHud, "Toggle gravity on and off.", a, top+(11*12), 1);
-    a = drawText(sHud, "F3 ", left, top+(11*13), 2);
-    drawText(sHud, "Save. Will auto save on exit or idle for more than 3 minutes anyway.", a, top+(11*13), 1);
-    a = drawText(sHud, "F8 ", left, top+(11*14), 2);
-    drawText(sHud, "Load. Will erase what you have done since the last save.", a, top+(11*14), 1);
+    drawText(sHud, "Resets player state to start.", a, top+(11*11), 1);
+    a = drawText(sHud, "P ", left, top+(11*12), 2);
+    drawText(sHud, "Toggle pitch lock.", a, top+(11*12), 1);
+    a = drawText(sHud, "R", left, top+(11*13), 2);
+    a = drawText(sHud, " or ", a, top+(11*13), 3);
+    a = drawText(sHud, "G ", a, top+(11*13), 2);
+    drawText(sHud, "Toggle gravity on and off.", a, top+(11*13), 1);
+    a = drawText(sHud, "F3 ", left, top+(11*14), 2);
+    drawText(sHud, "Save. Will auto save on exit. Backup made if idle for 3 mins.", a, top+(11*14), 1);
+    a = drawText(sHud, "F8 ", left, top+(11*15), 2);
+    drawText(sHud, "Load. Will erase what you have done since the last save.", a, top+(11*15), 1);
 #ifdef __linux__
-    a = drawText(sHud, "F10 ", left, top+(11*15), 2);
-    drawText(sHud, "Export the VoxelPaint data to a zip file in HOME Documents.", a, top+(11*15), 1);
+    a = drawText(sHud, "F10 ", left, top+(11*16), 2);
+    drawText(sHud, "Export the VoxelPaint data to a zip file in HOME Documents.", a, top+(11*16), 1);
 #endif
-    a = drawText(sHud, "Arrow Keys ", left, top+(11*16), 2);
-    drawText(sHud, "can be used to move the view around.", a, top+(11*16), 1);
-    a = drawText(sHud, "ESCAPE ", left, top+(11*17), 3);
-    drawText(sHud, "Release mouse focus.", a, top+(11*17), 1);
-    a = drawText(sHud, "To multiselect=", left, top+(11*19), 3);
-    a = drawText(sHud, " click and drag with ", a, top+(11*19), 1);
-    a = drawText(sHud, "Mouse 3", a, top+(11*19), 2);
-    a = drawText(sHud, " or ", a, top+(11*19), 1);
-    a = drawText(sHud, "Q", a, top+(11*19), 2);
-    a = drawText(sHud, ". Use ", a, top+(11*19), 1);
-    a = drawText(sHud, "B", a, top+(11*19), 2);
-    a = drawText(sHud, " to fill the selected area.", a, top+(11*19), 1);
-    a = drawText(sHud, "Use ", left, top+(11*20), 1);
-    a = drawText(sHud, "N", a, top+(11*20), 2);
-    a = drawText(sHud, " to delete area.", a, top+(11*20), 1);
-    a = drawText(sHud, " Middle Scroll ", a, top+(11*20), 2);
-    a = drawText(sHud, "or ", a, top+(11*20), 3);
-    a = drawText(sHud, "X", a, top+(11*20), 2);
-    a = drawText(sHud, " + ", a, top+(11*20), 4);
-    a = drawText(sHud, "C", a, top+(11*20), 2);
-    a = drawText(sHud, " to change texture.", a, top+(11*20), 1);
-    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*22), 4);
+    a = drawText(sHud, "Arrow Keys ", left, top+(11*17), 2);
+    drawText(sHud, "can be used to move the view around.", a, top+(11*17), 1);
+    a = drawText(sHud, "ESCAPE ", left, top+(11*18), 3);
+    drawText(sHud, "Release mouse focus.", a, top+(11*18), 1);
+    a = drawText(sHud, "To multiselect=", left, top+(11*20), 3);
+    a = drawText(sHud, " click and drag with ", a, top+(11*20), 1);
+    a = drawText(sHud, "Mouse 3", a, top+(11*20), 2);
+    a = drawText(sHud, " or ", a, top+(11*20), 1);
+    a = drawText(sHud, "Q", a, top+(11*20), 2);
+    a = drawText(sHud, ". Use ", a, top+(11*20), 1);
+    a = drawText(sHud, "B", a, top+(11*20), 2);
+    a = drawText(sHud, " to fill the selected area.", a, top+(11*20), 1);
+    a = drawText(sHud, "Use ", left, top+(11*21), 1);
+    a = drawText(sHud, "N", a, top+(11*21), 2);
+    a = drawText(sHud, " to delete area.", a, top+(11*21), 1);
+    a = drawText(sHud, " Middle Scroll ", a, top+(11*21), 2);
+    a = drawText(sHud, "or ", a, top+(11*21), 3);
+    a = drawText(sHud, "X", a, top+(11*21), 2);
+    a = drawText(sHud, " + ", a, top+(11*21), 4);
+    a = drawText(sHud, "C", a, top+(11*21), 2);
+    a = drawText(sHud, " to change texture.", a, top+(11*21), 1);
+    drawText(sHud, "Check the console output for information about how to customize the tiles.", left, top+(11*23), 4);
     // flip the new hud to gpu
     flipHud();
 }
@@ -1866,9 +1938,10 @@ int main(int argc, char** argv)
     printf("1-7 = Change move speed for selected fast state.\n");
     printf("Q / Middle Click = Clone texture of pointed node.\n");
     printf("Slash + Quote / X + C = Change texture of pointed node.\n");
-    printf("T = Resets view and position matrix.\n");
+    printf("T = Resets player state to start.\n");
+    printf("P = Toggle pitch lock.\n");
     printf("R / G = Gravity on/off.\n");
-    printf("F3 = Save. (auto saves on exit or idle for more than 3 minutes)\n");
+    printf("F3 = Save. (auto saves on exit, backup made if idle for 3 mins.)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
 #ifdef __linux__
     printf("F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.\n");
