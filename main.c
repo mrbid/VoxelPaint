@@ -87,7 +87,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v2.1";
+const char appVersion[] = "v2.2";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -1258,12 +1258,13 @@ void main_loop()
                         else
                         {
                             sp1o = sp1;
+                            sp1d = sp1;
                             sdif = sp2;
                             vSub(&sdif, sdif, sp1);
                             sdifo = sdif;
-                            if(sdif.x < 0.f){sp1.x += 0.51f;sdif.x -= 1.02f;}else{sp1.x -= 0.51f;sdif.x += 1.02f;}
-                            if(sdif.y < 0.f){sp1.y += 0.51f;sdif.y -= 1.02f;}else{sp1.y -= 0.51f;sdif.y += 1.02f;}
-                            if(sdif.z < 0.f){sp1.z += 0.51f;sdif.z -= 1.02f;}else{sp1.z -= 0.51f;sdif.z += 1.02f;}
+                            if(sdif.x < 0.f){sp1d.x += 0.51f;sdif.x -= 1.02f;}else{sp1d.x -= 0.51f;sdif.x += 1.02f;}
+                            if(sdif.y < 0.f){sp1d.y += 0.51f;sdif.y -= 1.02f;}else{sp1d.y -= 0.51f;sdif.y += 1.02f;}
+                            if(sdif.z < 0.f){sp1d.z += 0.51f;sdif.z -= 1.02f;}else{sp1d.z -= 0.51f;sdif.z += 1.02f;}
                         }
                         //printf("UP: %.2f, %.2f, %.2f\n", g.voxels[lray].x, g.voxels[lray].y, g.voxels[lray].z);
                     }
@@ -1365,6 +1366,7 @@ void main_loop()
                         {
                             sdif=(vec){0.f,0.f,0.f};
                             ise = 0;
+                            bigc = t+0.25f;
                         }
                         else
                         {
