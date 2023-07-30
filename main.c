@@ -1366,7 +1366,7 @@ void main_loop()
                         {
                             sdif=(vec){0.f,0.f,0.f};
                             ise = 0;
-                            bigc = t+0.25f;
+                            //bigc = t+0.25f;
                         }
                         else
                         {
