@@ -16,7 +16,8 @@
 			<li>1-7 = Change move speed for selected fast state.</li>
 			<li>Q / Middle Click = Clone texture of pointed node.</li>
 			<li>X + C / Slash + Quote = Change texture of pointed node.</li>
-			<li>T = Resets view and position matrix.</li>
+			<li>T = Resets player state to start.</li>
+			<li>P = Toggle pitch lock.</li>
 			<li>R / G = Gravity on/off.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
@@ -25,7 +26,7 @@
 		<p>To multiselect click and drag with Middle Mouse or Q. Fill the nodes with B or delete them with N. Middle Scroll or X+C to change texture.</p>
 		<p>Arrow Keys can be used to move the view around.</p>
 		<p>Your state is automatically saved on exit.</p>
-		<p>You can customize the 17 block tileset, in your dataPath you will find a tiles.ppm image file, edit this file and save it as a ppm with a P6 272 16 255 header. Krita or KolourPaint can edit ppm files.</p>
+		<p>You can customize the 17 block tileset, in your dataPath you will find a tiles.ppm image file, edit this file and save it as a PPM with a P6 272 16 255 header. Krita or KolourPaint can edit PPM files.</p>
 	</description>
 	<screenshots>
 		<screenshot><video>https://youtu.be/op3-aAQyGIA</video></screenshot>
