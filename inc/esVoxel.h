@@ -169,8 +169,11 @@ const GLchar* f0 =
             "mat4 modelview = view * model;\n"
             "vec4 vertPos4 = modelview * position;\n"
             "vec3 vertPos = vertPos4.xyz / vertPos4.w;\n"
-            //"lambertian = max(dot(normalize(-vertPos), normalize(vec3(modelview * vec4(normal, 0.0)))), 0.0);\n"
+#ifdef SKYBLUE
+            "lambertian = max(dot(normalize(-vertPos), normalize(vec3(modelview * vec4(normal, 0.0)))), 0.0);\n"
+#else
             "lambertian = max(dot(normalize(-vertPos), normalize(vec3(modelview * vec4(normal, 0.0)))), 0.0) * clamp(1.0 - (length(vertPos)*0.002), 0.0, 1.0);\n"
+#endif
             "vto = voxel.w;\n"
             "gl_Position = projection * vertPos4;\n"
         "}\n";
