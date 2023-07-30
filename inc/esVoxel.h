@@ -147,6 +147,10 @@ const GLchar* f0 =
 #define VERTEX_SHADE
 #ifdef VERTEX_SHADE
 
+/*
+    > darker darks
+*/
+
     const GLchar* v1 =
         "#version 100\n"
         "uniform mat4 view;\n"
@@ -188,10 +192,66 @@ const GLchar* f0 =
         "void main()\n"
         "{\n"
             "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
-            "gl_FragColor = vec4((tcol.xyz * 0.64) + lambertian*tcol.xyz, 1.0);\n"
+            "gl_FragColor = vec4((tcol.xyz*0.64)+(lambertian*tcol.xyz), 1.0);\n"
         "}\n";
 
+/*
+    > smoother shading
+*/
+
+//     const GLchar* v1 =
+//         "#version 100\n"
+//         "uniform mat4 view;\n"
+//         "uniform mat4 projection;\n"
+//         "uniform vec4 voxel;\n"
+//         "attribute vec4 position;\n"
+//         "attribute vec3 normal;\n"
+//         "attribute vec2 texcoord;\n"
+//         "varying float lambertian;\n"
+//         "varying vec2 vtc;\n"
+//         "varying float vto;\n"
+//         "void main()\n"
+//         "{\n"
+//             "vtc = texcoord;\n"
+//             "mat4 model;\n"
+//             "model[0] = vec4(1.0, 0.0, 0.0, 0.0);\n"
+//             "model[1] = vec4(0.0, 1.0, 0.0, 0.0);\n"
+//             "model[2] = vec4(0.0, 0.0, 1.0, 0.0);\n"
+//             "model[3] = vec4(voxel.x, voxel.y, voxel.z, 1.0);\n"
+//             "mat4 modelview = view * model;\n"
+//             "vec4 vertPos4 = modelview * position;\n"
+//             "vec3 vertPos = vertPos4.xyz / vertPos4.w;\n"
+// #ifdef SKYBLUE
+//             "lambertian = clamp(max(dot(normalize(-vertPos), normalize(vec3(modelview * vec4(normal, 0.0)))), 0.0), 0.64, 1.0);\n"
+// #else
+//             "lambertian = clamp(max(dot(normalize(-vertPos), normalize(vec3(modelview * vec4(normal, 0.0)))), 0.0) * clamp(1.0 - (length(vertPos)*0.002), 0.0, 1.0), 0.64, 1.0);\n"
+// #endif
+//             "vto = voxel.w;\n"
+//             "gl_Position = projection * vertPos4;\n"
+//         "}\n";
+
+//     const GLchar* f1 =
+//         "#version 100\n"
+//         "precision mediump float;\n"
+//         "varying float lambertian;\n"
+//         "varying vec2 vtc;\n"
+//         "varying float vto;\n"
+//         "uniform sampler2D tex;\n"
+//         "void main()\n"
+//         "{\n"
+//             "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
+// #ifdef SKYBLUE
+//             "gl_FragColor = vec4((tcol.xyz*0.64)+(lambertian*tcol.xyz), 1.0);\n"
+// #else
+//             "gl_FragColor = vec4((tcol.xyz*0.62)+(lambertian*tcol.xyz), 1.0);\n"
+// #endif
+//         "}\n";
+
 #else
+
+/*
+    > darker darks
+*/
 
     const GLchar* v1 =
         "#version 100\n"
@@ -237,6 +297,10 @@ const GLchar* f0 =
             "gl_FragColor = vec4(ambientColor + lambertian*tcol.xyz, 1.0);\n"
         "}\n";
 
+/*
+    > bright at distance
+*/
+
     // const GLchar* v1 =
     //     "#version 100\n"
     //     "uniform mat4 view;\n"
@@ -245,7 +309,7 @@ const GLchar* f0 =
     //     "attribute vec4 position;\n"
     //     "attribute vec3 normal;\n"
     //     "attribute vec2 texcoord;\n"
-    //     "varying vec3 lightPos;\n"
+    //     "varying vec3 lightDir;\n"
     //     "varying vec3 vertNorm;\n"
     //     "varying vec2 vtc;\n"
     //     "varying float vto;\n"
@@ -260,7 +324,7 @@ const GLchar* f0 =
     //         "mat4 modelview = view * model;\n"
     //         "vec4 vertPos4 = modelview * position;\n"
     //         "vec3 vertPos = vertPos4.xyz / vertPos4.w;\n"
-    //         "lightPos = normalize(-vertPos);\n"
+    //         "lightDir = normalize(-vertPos);\n"
     //         "vertNorm = vec3(modelview * vec4(normal, 0.0));\n"
     //         "vto = voxel.w;\n"
     //         "gl_Position = projection * vertPos4;\n"
@@ -269,7 +333,7 @@ const GLchar* f0 =
     // const GLchar* f1 =
     //     "#version 100\n"
     //     "precision mediump float;\n"
-    //     "varying vec3 lightPos;\n"
+    //     "varying vec3 lightDir;\n"
     //     "varying vec3 vertNorm;\n"
     //     "varying vec2 vtc;\n"
     //     "varying float vto;\n"
@@ -278,7 +342,7 @@ const GLchar* f0 =
     //     "{\n"
     //         "vec4 tcol = texture2D(tex, vec2(vtc.x+(0.058823529*vto), vtc.y));\n"
     //         "vec3 ambientColor = tcol.xyz * 0.64;\n"
-    //         "float lambertian = max(dot(lightPos, normalize(vertNorm)), 0.0);\n"
+    //         "float lambertian = max(dot(lightDir, normalize(vertNorm)), 0.0);\n"
     //         "gl_FragColor = vec4(ambientColor + lambertian*tcol.xyz, 1.0);\n"
     //     "}\n";
 
