@@ -30,7 +30,7 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 
 Arrow Keys can be used to move the view around.
 
-Your state is automatically saved on exit.
+Your state is automatically saved on exit. A backup `world.db2.idle` is updated every time no input is detected for over 3 minutes.
 
 You can customize the 17 block tileset, in your dataPath you will find a `tiles.ppm` image file, edit this file and save it as a PPM with a `P6 272 16 255` header. [Krita](https://krita.org) or [KolourPaint](https://apps.kde.org/en-gb/kolourpaint/) can edit PPM files.
 
