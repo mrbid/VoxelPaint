@@ -87,7 +87,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v2.2";
+const char appVersion[] = "v2.1";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
