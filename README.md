@@ -16,17 +16,18 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * SPACE + L-SHIFT = Move up and down relative Z.
 * Left Click / R-SHIFT = Place node.
 * Right Click / R-CTRL = Delete node.
+* Q / Middle Click = Clone texture of pointed node.
+* R = Places node at your current position.
 * E / F / Mouse4 = Toggle player fast speed on and off.
 * 1-7 = Change move speed for selected fast state.
-* Q / Middle Click = Clone texture of pointed node.
-* Mouse Scroll / Slash + Quote / X + C = Change texture of pointed node.
+* X + C / Slash + Quote = Change texture of pointed node.
 * T = Resets player state to start.
+* G = Gravity on/off.
 * P = Toggle pitch lock.
-* R / G = Gravity on/off.
 * F3 = Save. (auto saves on exit or idle for more than 3 minutes)
 * F8 = Load. (will erase what you have done since the last save)
-* F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.
-* Multi Selection = Middle Mouse Click & Drag *(or Q and drag)* to select area. Fill the nodes with **B** or delete them with **N**. **Middle Scroll** or **X+C** to change texture.
+* F10 = Export the VoxelPaint data to a zip file in $HOME/EXPORTS.
+* Multi Selection = Middle Mouse Click & Drag *(or Q and drag)* to select area. Fill the nodes with **B** or delete them with **N**. **Middle Scroll** or **X+C** to change texture. **V** to paste selected nodes to pointed position.
 
 Arrow Keys can be used to move the view around.
 
