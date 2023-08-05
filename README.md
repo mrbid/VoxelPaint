@@ -12,6 +12,7 @@ https://snapcraft.io/voxelpaint
 ## Info
 Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 
+## Input Bindings
 * W,A,S,D = Move around based on relative orientation to X and Y.
 * SPACE + L-SHIFT = Move up and down relative Z.
 * Left Click / R-SHIFT = Place node.
@@ -27,7 +28,12 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * F3 = Save. (auto saves on exit or idle for more than 3 minutes)
 * F8 = Load. (will erase what you have done since the last save)
 * F10 = Export the VoxelPaint data to a zip file in $HOME/EXPORTS.
-* Multi Selection = Middle Mouse Click & Drag *(or Q and drag)* to select area. Fill the nodes with **B** or delete them with **N**. **Middle Scroll** or **X+C** to change texture. **V** to paste selected nodes to pointed position.
+
+## Multi Selection
+* Middle Mouse Click & Drag *(or Q and drag)* to select area.
+* V = Copies the selected nodes to the currently pointed position, the point you started the selection from is the point you will copy from at the new pointed location.
+* B = Fill selected nodes with selected color.
+* N = Delete selected nodes.
 
 Arrow Keys can be used to move the view around.
 
