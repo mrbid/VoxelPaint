@@ -12,6 +12,14 @@ https://snapcraft.io/voxelpaint
 ## Info
 Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 
+Arrow Keys can be used to move the view around.
+
+Your state is automatically saved on exit. A backup `world.db2.idle` is updated every time no input is detected for over 3 minutes.
+
+You can customize the 17 block tileset, in your dataPath you will find a `tiles.ppm` image file, edit this file and save it as a PPM with a `P6 272 16 255` header. [Krita](https://krita.org) or [KolourPaint](https://apps.kde.org/en-gb/kolourpaint/) can edit PPM files.
+
+You can change the mouse sensitivity by passing the new sensitivity as the 1st command line parameter *[default is 0.003]* `./vox 0.003`.
+
 ## Input Bindings
 * W,A,S,D = Move around based on relative orientation to X and Y.
 * SPACE + L-SHIFT = Move up and down relative Z.
@@ -34,11 +42,3 @@ Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
 * V = Copies the selected nodes to the currently pointed position, the point you started the selection from is the point you will copy from at the new pointed location.
 * B = Fill selected nodes with selected color.
 * N = Delete selected nodes.
-
-Arrow Keys can be used to move the view around.
-
-Your state is automatically saved on exit. A backup `world.db2.idle` is updated every time no input is detected for over 3 minutes.
-
-You can customize the 17 block tileset, in your dataPath you will find a `tiles.ppm` image file, edit this file and save it as a PPM with a `P6 272 16 255` header. [Krita](https://krita.org) or [KolourPaint](https://apps.kde.org/en-gb/kolourpaint/) can edit PPM files.
-
-You can change the mouse sensitivity by passing the new sensitivity as the 1st command line parameter *[default is 0.003]* `./vox 0.003`.
