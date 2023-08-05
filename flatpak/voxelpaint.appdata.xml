@@ -12,18 +12,19 @@
 			<li>SPACE + L-SHIFT = Move up and down relative Z.</li>
 			<li>Left Click / R-SHIFT = Place node.</li>
 			<li>Right Click / R-CTRL = Delete node.</li>
+			<li>Q / Middle Click = Clone texture of pointed node.</li>
+			<li>R = Places node at your current position.</li>
 			<li>E / F / Mouse4 = Toggle player fast speed on and off.</li>
 			<li>1-7 = Change move speed for selected fast state.</li>
-			<li>Q / Middle Click = Clone texture of pointed node.</li>
 			<li>X + C / Slash + Quote = Change texture of pointed node.</li>
 			<li>T = Resets player state to start.</li>
+			<li>G = Gravity on/off.</li>
 			<li>P = Toggle pitch lock.</li>
-			<li>R / G = Gravity on/off.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
 			<li>F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.</li>
 		</ul>
-		<p>To multiselect click and drag with Middle Mouse or Q. Fill the nodes with B or delete them with N. Middle Scroll or X+C to change texture.</p>
+		<p>To multiselect click and drag with Middle Mouse or Q. Fill the nodes with B or delete them with N. Middle Scroll or X+C to change texture. V to paste selected nodes to pointed position.</p>
 		<p>Arrow Keys can be used to move the view around.</p>
 		<p>Your state is automatically saved on exit.</p>
 		<p>You can customize the 17 block tileset, in your dataPath you will find a tiles.ppm image file, edit this file and save it as a PPM with a P6 272 16 255 header. Krita or KolourPaint can edit PPM files.</p>
