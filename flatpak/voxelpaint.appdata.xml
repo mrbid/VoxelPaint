@@ -22,7 +22,7 @@
 			<li>P = Toggle pitch lock.</li>
 			<li>F3 = Save. (auto saves on exit or idle for more than 3 minutes)</li>
 			<li>F8 = Load. (will erase what you have done since the last save)</li>
-			<li>F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.</li>
+			<li>F10 = Export the VoxelPaint data to a zip file in $HOME/EXPORTS.</li>
 		</ul>
 		<p>To multiselect click and drag with Middle Mouse or Q. Fill the nodes with B or delete them with N. Middle Scroll or X+C to change texture. V to paste selected nodes to pointed position.</p>
 		<p>Arrow Keys can be used to move the view around.</p>
