@@ -87,7 +87,7 @@ const unsigned char icon[] = { // 16, 16, 4
 // globals
 //*************************************
 const char appTitle[] = "Voxel Paint";
-const char appVersion[] = "v2.1";
+const char appVersion[] = "v2.2";
 char *basedir, *appdir;
 SDL_Window* wnd;
 SDL_GLContext glc;
@@ -164,6 +164,27 @@ typedef struct
 }
 game_state;
 game_state g; // ~67mb
+
+int swapfunc(const void *a, const void *b)
+{
+    const float aw = ((vec*)a)->w;
+    const float bw = ((vec*)b)->w;
+    if(aw == bw){return 0;}
+    else if(aw == -1.f){return 1;}
+    return 0;
+}
+void optimState()
+{
+    qsort(g.voxels, g.num_voxels, sizeof(vec), swapfunc);
+    for(uint i = 0; i < g.num_voxels; i++)
+    {
+        if(g.voxels[i].w == -1.f)
+        {
+            g.num_voxels = i;
+            break;
+        }
+    }
+}
 
 void defaultState(const uint type)
 {
@@ -271,6 +292,7 @@ uint loadUncompressedState()
 #ifdef NO_COMPRESSION
     void saveState(const char* fne)
     {
+        optimState();
     #ifdef __linux__
         setlocale(LC_NUMERIC, "");
         const uint64_t st = microtime();
@@ -302,6 +324,7 @@ uint loadUncompressedState()
 #else
     void saveState(const char* fne)
     {
+        optimState();
     #ifdef __linux__
         setlocale(LC_NUMERIC, "");
         const uint64_t st = microtime();
@@ -613,9 +636,9 @@ int placeVoxel(const float repeat_delay)
 {
     ptt = t+repeat_delay;
 
-    if(g.pb.w == -1){return -1;}
+    if(g.pb.w == -1){return -1;} // place block invalid texture (failed ray indication)
 
-    for(uint i = 0; i < g.num_voxels; i++)
+    for(uint i = 256; i < g.num_voxels; i++)
     {
         if(g.voxels[i].w < 0.f)
         {
@@ -632,7 +655,51 @@ int placeVoxel(const float repeat_delay)
         g.num_voxels++;
         return r;
     }
-    return -2;
+    return -2; // no space left
+}
+int placeVoxelArb(const vec v)
+{
+    uint free = -1;
+    for(uint i = 256; i < g.num_voxels; i++)
+    {
+        if(free == -1 && g.voxels[i].w < 0.f){free = i;} // find first free slot (pre-emptive)
+        if(g.voxels[i].x == v.x && g.voxels[i].y == v.y && g.voxels[i].z == v.z){return -1;} // already exists
+    }
+    if(free != -1)
+    {
+        g.voxels[free] = v;
+        return free;
+    }
+    if(g.num_voxels < max_voxels)
+    {
+        g.voxels[g.num_voxels] = v;
+        const int r = g.num_voxels;
+        g.num_voxels++;
+        return r;
+    }
+    return -2; // no space left
+}
+int forceVoxelArb(const vec v)
+{
+    uint free = -1;
+    for(uint i = 256; i < g.num_voxels; i++)
+    {
+        if(free == -1 && g.voxels[i].w < 0.f){free = i;} // find first free slot (pre-emptive)
+        if(g.voxels[i].x == v.x && g.voxels[i].y == v.y && g.voxels[i].z == v.z){free = i;break;} // already exists
+    }
+    if(free != -1)
+    {
+        g.voxels[free] = v;
+        return free;
+    }
+    if(g.num_voxels < max_voxels)
+    {
+        g.voxels[g.num_voxels] = v;
+        const int r = g.num_voxels;
+        g.num_voxels++;
+        return r;
+    }
+    return -2; // no space left
 }
 // forceinline int findVoxel(const float x, const float y, const float z)
 // {
@@ -1056,7 +1123,7 @@ void main_loop()
                     traceViewPath(1);
                     placeVoxel(0.3f);
                 }
-                else if(event.key.keysym.sym == SDLK_r || event.key.keysym.sym == SDLK_g) // gravity toggle
+                else if(event.key.keysym.sym == SDLK_g) // gravity toggle
                 {
                     g.grav = 1 - g.grav;
                 }
@@ -1104,6 +1171,52 @@ void main_loop()
                 else if(event.key.keysym.sym == SDLK_t)
                 {
                     defaultState(1);
+                }
+                else if(event.key.keysym.sym == SDLK_r)
+                {
+                    placeVoxelArb((vec){roundf(-g.pp.x), roundf(-g.pp.y), roundf(-g.pp.z), g.st});
+                }
+                else if(event.key.keysym.sym == SDLK_v)
+                {
+                    if(sdif.x == 0.f && sdif.y == 0.f && sdif.z == 0.f){break;} // no selection
+                    
+                    // check pointed node is not within selection
+                    uint good = 1;
+                    traceViewPath(0);
+                    if(lray > -1)
+                    {
+                        float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
+                        if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
+                        if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
+                        if(sp1o.z < sp2.z){lz=sp1o.z;hz=sp2.z;}else{lz=sp2.z;hz=sp1o.z;}
+                        if( g.voxels[lray].x >= lx && g.voxels[lray].x <= hx &&
+                            g.voxels[lray].y >= ly && g.voxels[lray].y <= hy &&
+                            g.voxels[lray].z >= lz && g.voxels[lray].z <= hz )
+                        {
+                            good = 0;
+                        }
+                    }
+                    if(good == 1)
+                    {
+                        // copy nodes to new position, from sp1o to g.voxels[lray]
+                        for(uint i = 0; i < g.num_voxels; i++)
+                        {
+                            if(g.voxels[i].w < 0.f){continue;}
+                            float lx=0.f,ly=0.f,lz=0.f,hx=0.f,hy=0.f,hz=0.f;
+                            if(sp1o.x < sp2.x){lx=sp1o.x;hx=sp2.x;}else{lx=sp2.x;hx=sp1o.x;}
+                            if(sp1o.y < sp2.y){ly=sp1o.y;hy=sp2.y;}else{ly=sp2.y;hy=sp1o.y;}
+                            if(sp1o.z < sp2.z){lz=sp1o.z;hz=sp2.z;}else{lz=sp2.z;hz=sp1o.z;}
+                            if( g.voxels[i].x >= lx && g.voxels[i].x <= hx &&
+                                g.voxels[i].y >= ly && g.voxels[i].y <= hy &&
+                                g.voxels[i].z >= lz && g.voxels[i].z <= hz )
+                            {
+                                forceVoxelArb((vec){g.voxels[lray].x+(g.voxels[i].x-sp1o.x),
+                                                    g.voxels[lray].y+(g.voxels[i].y-sp1o.y),
+                                                    g.voxels[lray].z+(g.voxels[i].z-sp1o.z),
+                                                    g.voxels[i].w});
+                            }
+                        }
+                    }
                 }
                 else if(event.key.keysym.sym == SDLK_b)
                 {
@@ -1183,23 +1296,23 @@ void main_loop()
                     const time_t tt = time(0);
                     strftime(tmp, 32, "%d-%m-%y_%H:%M:%S", localtime(&tt));
                     char cmd[512];
-                    sprintf(cmd, "%s/Documents", getenv("HOME"));
+                    sprintf(cmd, "%s/EXPORTS", getenv("HOME"));
                     mkdir(cmd, 0755);
-                    sprintf(cmd, "%s/Documents/VoxelPaint_exports", getenv("HOME"));
+                    sprintf(cmd, "%s/EXPORTS/VoxelPaint_exports", getenv("HOME"));
                     mkdir(cmd, 0755);
                     char tmp2[16];
                     timestamp(tmp2);
                     if(fileExist("/usr/bin/7z") == 1)
                     {
-                        sprintf(cmd, "7z a -y -bsp0 -bso0 -r %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.7z %s/*", getenv("HOME"), tmp, g.num_voxels, appdir);
+                        sprintf(cmd, "7z a -y -bsp0 -bso0 -r %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.7z %s/*", getenv("HOME"), tmp, g.num_voxels, appdir);
                         if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
-                        printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.7z\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
+                        printf("[%s] Exported data to: %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.7z\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
                     }
                     else if(fileExist("/usr/bin/zip") == 1)
                     {
-                        sprintf(cmd, "zip -jq9 %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/world.db2 %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir, appdir, appdir);
+                        sprintf(cmd, "zip -jq9 %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/world.db2 %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir, appdir, appdir);
                         if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
-                        printf("[%s] Exported data to: %s/Documents/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
+                        printf("[%s] Exported data to: %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
                     }
                     else
                     {
@@ -1807,19 +1920,17 @@ void drawHud()
     a = drawText(sHud, "T ", left, top+(11*11), 2);
     drawText(sHud, "Resets player state to start.", a, top+(11*11), 1);
     a = drawText(sHud, "P ", left, top+(11*12), 2);
-    drawText(sHud, "Toggle pitch lock.", a, top+(11*12), 1);
-    a = drawText(sHud, "R", left, top+(11*13), 2);
-    a = drawText(sHud, " or ", a, top+(11*13), 3);
-    a = drawText(sHud, "G ", a, top+(11*13), 2);
-    drawText(sHud, "Toggle gravity on and off.", a, top+(11*13), 1);
+    a = drawText(sHud, "Toggle pitch lock.", a, top+(11*12), 1);
+    a = drawText(sHud, " G ", a, top+(11*12), 2);
+    drawText(sHud, "Toggle gravity on and off.", a, top+(11*12), 1);
+    a = drawText(sHud, "R ", left, top+(11*13), 2);
+    drawText(sHud, "Places node at your current position.", a, top+(11*13), 1);
     a = drawText(sHud, "F3 ", left, top+(11*14), 2);
     drawText(sHud, "Save. Will auto save on exit. Backup made if idle for 3 mins.", a, top+(11*14), 1);
     a = drawText(sHud, "F8 ", left, top+(11*15), 2);
     drawText(sHud, "Load. Will erase what you have done since the last save.", a, top+(11*15), 1);
-#ifdef __linux__
-    a = drawText(sHud, "F10 ", left, top+(11*16), 2);
-    drawText(sHud, "Export the VoxelPaint data to a zip file in HOME Documents.", a, top+(11*16), 1);
-#endif
+    a = drawText(sHud, "V ", left, top+(11*16), 2);
+    drawText(sHud, "Pastes selected nodes to pointed position.", a, top+(11*16), 1);
     a = drawText(sHud, "Arrow Keys ", left, top+(11*17), 2);
     drawText(sHud, "can be used to move the view around.", a, top+(11*17), 1);
     a = drawText(sHud, "ESCAPE ", left, top+(11*18), 3);
@@ -1927,7 +2038,7 @@ int main(int argc, char** argv)
     printf("----\n");
     printf("currentPath: %s\n", basedir);
     printf("dataPath:    %s\n", appdir);
-    printf("exportPath:  %s/Documents/VoxelPaint_exports/\n", getenv("HOME"));
+    printf("exportPath:  %s/EXPORTS/VoxelPaint_exports/\n", getenv("HOME"));
     printf("----\n");
     printf(">>> Voxel Paint <<<\n\n");
     printf("James William Fletcher (github.com/mrbid)\n\n");
@@ -1936,17 +2047,18 @@ int main(int argc, char** argv)
     printf("SPACE + L-SHIFT = Move up and down relative Z.\n");
     printf("Left Click / R-SHIFT = Place node.\n");
     printf("Right Click / R-CTRL = Delete node.\n");
+    printf("Q / Middle Click = Clone texture of pointed node.\n");
+    printf("R = Places node at your current position.\n");
     printf("E / F / Mouse4 = Toggle player fast speed on and off.\n");
     printf("1-7 = Change move speed for selected fast state.\n");
-    printf("Q / Middle Click = Clone texture of pointed node.\n");
-    printf("Slash + Quote / X + C = Change texture of pointed node.\n");
+    printf("X + C / Slash + Quote = Change texture of pointed node.\n");
     printf("T = Resets player state to start.\n");
+    printf("G = Gravity on/off.\n");
     printf("P = Toggle pitch lock.\n");
-    printf("R / G = Gravity on/off.\n");
     printf("F3 = Save. (auto saves on exit, backup made if idle for 3 mins.)\n");
     printf("F8 = Load. (will erase what you have done since the last save)\n");
 #ifdef __linux__
-    printf("F10 = Export the VoxelPaint data to a zip file in $HOME/Documents.\n");
+    printf("F10 = Export the VoxelPaint data to a zip file in $HOME/EXPORTS.\n");
 #endif
     printf("\nMulti Selections:\n");
     printf("Middle Mouse Click & Drag (or Q and drag) to select area.\n");
