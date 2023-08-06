@@ -28,6 +28,8 @@ description: |
   
   Your state is automatically saved on exit.
 
+  Sensitivity as the 1st command line parameter default is 0.003 `./voxelpaintpro 0.003`.
+
 grade: stable
 confinement: strict
 
