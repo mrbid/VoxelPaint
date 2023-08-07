@@ -1174,7 +1174,12 @@ void main_loop()
                 }
                 else if(event.key.keysym.sym == SDLK_r)
                 {
-                    placeVoxelArb((vec){roundf(-g.pp.x), roundf(-g.pp.y), roundf(-g.pp.z), g.st});
+                    vec p = g.pp;
+                    vInv(&p);
+                    vec pi = look_dir;
+                    vMulS(&pi, pi, 6.f);
+                    vAdd(&p, p, pi);
+                    placeVoxelArb((vec){roundf(p.x), roundf(p.y), roundf(p.z), g.st});
                 }
                 else if(event.key.keysym.sym == SDLK_v)
                 {
@@ -1304,13 +1309,13 @@ void main_loop()
                     timestamp(tmp2);
                     if(fileExist("/usr/bin/7z") == 1)
                     {
-                        sprintf(cmd, "7z a -y -bsp0 -bso0 -r %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.7z %s/*", getenv("HOME"), tmp, g.num_voxels, appdir);
+                        sprintf(cmd, "/usr/bin/7z a -y -bsp0 -bso0 -r %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.7z %s/*", getenv("HOME"), tmp, g.num_voxels, appdir);
                         if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
                         printf("[%s] Exported data to: %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.7z\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
                     }
                     else if(fileExist("/usr/bin/zip") == 1)
                     {
-                        sprintf(cmd, "zip -jq9 %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/world.db2 %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir, appdir, appdir);
+                        sprintf(cmd, "/usr/bin/zip -jq9 %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.zip %s/world.db %s/world.db2 %s/world.gz %s/tiles.ppm", getenv("HOME"), tmp, g.num_voxels, appdir, appdir, appdir, appdir);
                         if(system(cmd) < 0){printf("system() failed: %s\n", cmd);}
                         printf("[%s] Exported data to: %s/EXPORTS/VoxelPaint_exports/voxelpaint_%s_%u.zip\n", tmp2, getenv("HOME"), tmp, g.num_voxels);
                     }
@@ -2040,8 +2045,10 @@ int main(int argc, char** argv)
     printf("dataPath:    %s\n", appdir);
     printf("exportPath:  %s/EXPORTS/VoxelPaint_exports/\n", getenv("HOME"));
     printf("----\n");
-    printf(">>> Voxel Paint <<<\n\n");
-    printf("James William Fletcher (github.com/mrbid)\n\n");
+    printf(">>> Voxel Paint <<<\n");
+    printf("----\n");
+    printf("James William Fletcher (github.com/mrbid)\n");
+    printf("----\n\n");
     printf("Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.\n\n");
     printf("W,A,S,D = Move around based on relative orientation to X and Y.\n");
     printf("SPACE + L-SHIFT = Move up and down relative Z.\n");
@@ -2060,14 +2067,18 @@ int main(int argc, char** argv)
 #ifdef __linux__
     printf("F10 = Export the VoxelPaint data to a zip file in $HOME/EXPORTS.\n");
 #endif
-    printf("\nMulti Selections:\n");
-    printf("Middle Mouse Click & Drag (or Q and drag) to select area.\n");
-    printf("Fill the nodes with B or delete them with N.\n");
+    printf("\n- Multi Selections\n");
+    printf("--------------------------------------------------\n");
+    printf("Middle Mouse Click (or Q and drag) to select area.\n");
+    printf("--------------------------------------------------\n");
+    printf("V = Copies the selected nodes to the currently pointed position,\n    the point you started the selection from is the point you will\n    copy from at the new pointed location.\n");
+    printf("B = Fill selected nodes with selected color.\nN = Delete selected nodes.\n");
+    printf("--------------------------------------------\n");
     printf("\n* Arrow Keys can be used to move the view around.\n");
     printf("* Your state is automatically saved on exit.\n");
     printf("* You can customize the 17 block tileset,\n  in your dataPath(%s)\n  you will find a tiles.ppm image file, edit this file and\n  save it as a PPM with a `P6 272 16 255` header.\n  ! Krita (https://krita.org) or KolourPaint can edit PPM files.\n", appdir);
     printf("* You can change the mouse sensitivity by passing the new\n  sensitivity as the 1st command line parameter default is\n  0.003 `./vox 0.003`.\n");
-    printf("----\n");
+    printf("\n----\n");
 
 //*************************************
 // prepare data loading
