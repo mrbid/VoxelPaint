@@ -1200,7 +1200,7 @@ void main_loop()
                         {
                             good = 0;
                         }
-                    }
+                    }else{good=0;}
                     if(good == 1)
                     {
                         // copy nodes to new position, from sp1o to g.voxels[lray]
