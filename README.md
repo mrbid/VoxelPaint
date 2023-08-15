@@ -38,3 +38,6 @@ https://snapcraft.io/voxelpaint
 * V = Copies the selected nodes to the currently pointed position, the point you started the selection from is the point you will copy from at the new pointed location.
 * B = Fill selected nodes with selected color.
 * N = Delete selected nodes.
+
+## Known Bugs
+* Sometimes when you copy a selection a single line of nodes on the edge of the selection will not be copied, this is easy to fix my doing a second copy or placing two nodes around the selection area using (R) to give the selection area a bit of margin/border.
