@@ -738,7 +738,7 @@ void doPerspective()
     ww = (float)winw;
     wh = (float)winh;
     mIdent(&projection);
-    mPerspective(&projection, 60.0f, ww / wh, 1.0f, ddist);
+    mPerspective(&projection, 60.0f, ww / wh, 0.1f, ddist);
     glUniformMatrix4fv(projection_id, 1, GL_FALSE, (float*)&projection.m[0][0]);
 }
 forceinline uint insideFrustum(const float x, const float y, const float z)
