@@ -41,4 +41,4 @@ https://snapcraft.io/voxelpaint
 * N = Delete selected nodes.
 
 ## Known Bugs
-* Sometimes when a selection is clones and pasted a single line of nodes on the edge of the selection will not be copied, this is easy to fix by doing a second copy or placing two nodes around the selection area using (R) to give the selection area a margin/border.
+* Sometimes when a selection is cloned and pasted a single line of nodes on the edge of the selection will not be copied, this is easy to fix by doing a second copy or placing two nodes around the selection area using (R) to give the selection area a margin/border.
