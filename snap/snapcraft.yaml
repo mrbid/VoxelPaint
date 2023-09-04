@@ -43,7 +43,7 @@ architectures:
 
 apps:
   voxelpaint:
-    extensions: [gnome-3-38]
+    extensions: [gnome]
     command: voxelpaint
     plugs:
     - desktop
