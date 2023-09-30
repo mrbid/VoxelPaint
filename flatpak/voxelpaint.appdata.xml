@@ -6,7 +6,7 @@
 	<name>Voxel Paint</name>
 	<summary>Paint in 3D using voxels!</summary>
 	<description>
-		<p>Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.</p>
+		<p>Mouse locks when you click on the game window, press ESCAPE or TAB to unlock the mouse.</p>
 		<ul>
 			<li>W,A,S,D = Move around based on relative orientation to X and Y.</li>
 			<li>SPACE + L-SHIFT = Move up and down relative Z.</li>
