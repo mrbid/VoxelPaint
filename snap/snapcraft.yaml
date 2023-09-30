@@ -1,10 +1,10 @@
 name: voxelpaint
 base: core22
-version: '2.2'
+version: '2.3'
 license: GPL-2.0-only
 summary: Paint in 3D using voxels!
 description: |
-  Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
+  Mouse locks when you click on the game window, press ESCAPE or TAB to unlock the mouse.
   
   W,A,S,D = Move around based on relative orientation to X and Y.
   SPACE + L-SHIFT = Move up and down relative Z.
