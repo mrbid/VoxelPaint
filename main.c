@@ -138,7 +138,6 @@ forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
         return (stat(file, &st) == 0);
     }
 #endif
-
 static SDL_HitTestResult SDLCALL hitTest(SDL_Window *window, const SDL_Point *pt, void *data)
 {
     if( SDL_PointInRect(pt, &(SDL_Rect){30, 0, winw2-75, 22}) == SDL_TRUE ||
@@ -146,7 +145,6 @@ static SDL_HitTestResult SDLCALL hitTest(SDL_Window *window, const SDL_Point *pt
         return SDL_HITTEST_DRAGGABLE;
     return SDL_HITTEST_NORMAL;
 }
-
 
 //*************************************
 // game state functions
