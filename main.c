@@ -1661,7 +1661,6 @@ void main_loop()
                             }
 
                             dsx = mx, dsy = my;
-                            SDL_CaptureMouse(SDL_TRUE);
                             break;
                         }
                         else if(mx > winw-15 && my > winh-15)
