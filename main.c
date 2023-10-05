@@ -2396,7 +2396,7 @@ int main(int argc, char** argv)
             timestamp(tmp);
             printf("[%s] %u fps, %u voxels\n", tmp, g_fps, g.num_voxels);
 #endif
-            if(focus_mouse == 0 && winw > 500 && winh > 250)
+            if(focus_mouse == 0 && winw > 500 && winh > 280)
                 drawHud();
             fps = 0;
             ft = t+3.f;
