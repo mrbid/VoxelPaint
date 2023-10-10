@@ -136,7 +136,7 @@ const GLchar* v0 =
 
 const GLchar* f0 =
     "#version 100\n"
-    "precision mediump float;\n"
+    "precision highp float;\n"
     "varying vec2 vtc;\n"
     "uniform sampler2D tex;\n"
     "void main()\n"
@@ -184,7 +184,7 @@ const GLchar* f0 =
 
     const GLchar* f1 =
         "#version 100\n"
-        "precision mediump float;\n"
+        "precision highp float;\n"
         "varying float lambertian;\n"
         "varying vec2 vtc;\n"
         "varying float vto;\n"
