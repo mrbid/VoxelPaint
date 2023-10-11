@@ -1080,11 +1080,47 @@ void main_loop()
         }
     }
     
+    static uint last_focus_mouse = 0;
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {
         switch(event.type)
         {
+            case SDL_WINDOWEVENT:
+            {
+                switch(event.window.event)
+                {
+                    case SDL_WINDOWEVENT_FOCUS_GAINED:
+                    {
+                        focus_mouse = last_focus_mouse;
+                        SDL_ShowCursor(focus_mouse ? SDL_DISABLE : SDL_ENABLE);
+                        if(focus_mouse == 1)
+                        {
+                            SDL_GetRelativeMouseState(&xd, &yd);
+                            SDL_SetRelativeMouseMode(SDL_TRUE);
+                        }
+                    }
+                    break;
+
+                    case SDL_WINDOWEVENT_FOCUS_LOST:
+                    {
+                        last_focus_mouse = focus_mouse;
+                        focus_mouse = 0;
+                        SDL_ShowCursor(SDL_ENABLE);
+                        SDL_GetRelativeMouseState(&xd, &yd);
+                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                    }
+                    break;
+
+                    case SDL_WINDOWEVENT_RESIZED:
+                    {
+                        WOX_POP(event.window.data1, event.window.data2);
+                    }
+                    break;
+                }
+            }
+            break;
+
             case SDL_KEYDOWN:
             {
                 if(event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_TAB) // unlock mouse focus
@@ -1707,19 +1743,6 @@ void main_loop()
                        else{g.ms = g.lms;}
                 }
                 idle = t;
-            }
-            break;
-
-            case SDL_WINDOWEVENT:
-            {
-                if(event.window.event == SDL_WINDOWEVENT_RESIZED)
-                {
-                    winw = event.window.data1;
-                    winh = event.window.data2;
-                    winw2 = winw/2;
-                    winh2 = winh/2;
-                    doPerspective();
-                }
             }
             break;
 
