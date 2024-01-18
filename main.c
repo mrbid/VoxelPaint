@@ -140,6 +140,7 @@ forceinline float fTime(){return ((float)SDL_GetTicks())*0.001f;}
 #endif
 static SDL_HitTestResult SDLCALL hitTest(SDL_Window *window, const SDL_Point *pt, void *data)
 {
+    if(focus_mouse == 1){return SDL_HITTEST_NORMAL;}
     if( SDL_PointInRect(pt, &(SDL_Rect){40, 0, winw2-85, 22}) == SDL_TRUE ||
         SDL_PointInRect(pt, &(SDL_Rect){winw2+60, 0, winw2-102, 22}) == SDL_TRUE)
         return SDL_HITTEST_DRAGGABLE;
@@ -2328,9 +2329,9 @@ int main(int argc, char** argv)
 //*************************************
 // projection & compile & link shader program
 //*************************************
-    doPerspective();
     makeVoxel();
     makeHud();
+    doPerspective();
 
 //*************************************
 // configure render options
