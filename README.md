@@ -1,5 +1,5 @@
 # Voxel Paint
-Paint in 3D using textured voxels.
+Paint in 3D using textured voxels. also check out [VoxelPaintPro](https://github.com/mrbid/VoxelPaintPro).
 
 [![screenshot](https://dashboard.snapcraft.io/site_media/appmedia/2023/07/Screenshot_2023-07-29_03-11-25.png)](https://www.youtube.com/watch?v=op3-aAQyGIA)
 
