@@ -3,8 +3,7 @@ Paint in 3D using textured voxels, also check out [VoxelPaintPro](https://github
 
 [![screenshot](https://dashboard.snapcraft.io/site_media/appmedia/2023/07/Screenshot_2023-07-29_03-11-25.png)](https://www.youtube.com/watch?v=op3-aAQyGIA)
 
-## Download
-[Flathub](https://flathub.org/apps/com.voxdsp.VoxelPaint) or [Snapcraft](https://snapcraft.io/voxelpaint)
+## Download [Flathub](https://flathub.org/apps/com.voxdsp.VoxelPaint) or [Snapcraft](https://snapcraft.io/voxelpaint)
 
 ## Info
 * Mouse locks when you click on the game window, press ESCAPE to unlock the mouse.
